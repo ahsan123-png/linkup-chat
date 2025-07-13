@@ -4,8 +4,19 @@ import { useState } from 'react';
 // Importing custom components
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import { useAuth } from './components/AuthContext';
 
 function App() {
+  const { user, logout } = useAuth();
+  const [authPage, setAuthPage] = useState('login'); // 'login' or 'register'
+  if (!user) {
+    return authPage === 'login'
+      ? <Login onSwitch={() => setAuthPage('register')} />
+      : <Register onSwitch={() => setAuthPage('login')} />;
+  }
+
   // Stores the currently selected user or group in chat
   const [selectedUser, setSelectedUser] = useState('John');
 
@@ -68,6 +79,10 @@ function App() {
           members={currentMembers} // Group member list (optional)
         />
       )}
+      {/* Logout button */}
+      <div className="p-2 text-right">
+        <button onClick={logout} className="text-red-500 text-sm">Logout</button>
+      </div>
     </div>
   );
 }
