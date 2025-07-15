@@ -1,8 +1,5 @@
-// -------------------------------
-// src/pages/Login.jsx
-// -------------------------------
 import { useState } from 'react';
-import { useAuth } from '../components/AuthContext';
+import { useAuth } from './AuthContext';
 
 export default function Login({ onSwitch }) {
   const [username, setUsername] = useState('');
@@ -13,7 +10,8 @@ export default function Login({ onSwitch }) {
     e.preventDefault();
 
     if (username && password) {
-      login(username); // log in directly (no real password check for now)
+      // For now, we just log them in without real auth
+      login(username);
     } else {
       alert("Please fill all fields");
     }

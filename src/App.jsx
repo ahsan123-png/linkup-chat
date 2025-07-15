@@ -4,8 +4,8 @@ import { useState } from 'react';
 // Importing custom components
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import Login from './components/Login';
+import Register from './components/Register';
 import { useAuth } from './components/AuthContext';
 
 function App() {
