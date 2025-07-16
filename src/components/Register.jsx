@@ -1,25 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from './AuthContext'; // <-- Import AuthContext to handle frontend login
 
 export default function Register() {
-  // State variables to store form inputs
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const navigate = useNavigate();
+  const { login } = useAuth(); // <-- login from context
 
-  // Function to handle form submission
   const handleRegister = async (e) => {
-    e.preventDefault(); // Prevent default form refresh on submit
+    e.preventDefault();
 
-    // Basic validation: check if all fields are filled
+    // Validate fields
     if (!fullName.trim() || !email.trim() || !password.trim()) {
       alert('Please fill all fields');
       return;
     }
 
-    // Prepare the payload for the API
     const payload = {
       full_name: fullName,
       email: email,
@@ -27,37 +26,33 @@ export default function Register() {
     };
 
     try {
-      // Send POST request to Django backend for registration
       const response = await fetch('http://127.0.0.1:8000/users/register/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // Indicate sending JSON
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload), // Convert JS object to JSON string
+        body: JSON.stringify(payload),
       });
 
-      // If the request is successful (HTTP status 200–299)
       if (response.ok) {
-        const data = await response.json(); // Convert response to JS object
-        console.log('Registered:', data);
+        const data = await response.json();
 
-        // ✅ Store tokens in localStorage
+        // Store tokens and user info
         localStorage.setItem('access_token', data.tokens.access);
         localStorage.setItem('refresh_token', data.tokens.refresh);
-
-        // You can also store user info (optional)
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        alert('Account created successfully! Redirecting to login.');
-        navigate('/login'); // Redirect user to login page
+        // Log the user in (frontend context)
+        login(fullName); // or login(data.user.full_name) if returned
+
+        // Redirect to chat
+        navigate('/chat');
       } else {
-        // If registration failed, show error message
         const errorData = await response.json();
         console.error('Registration failed:', errorData);
         alert('Registration failed: ' + (errorData.message || 'Please try again.'));
       }
     } catch (error) {
-      // Handle network or server errors
       console.error('Error occurred:', error);
       alert('Something went wrong. Please try again.');
     }
@@ -71,7 +66,7 @@ export default function Register() {
       >
         <h2 className="text-xl font-semibold mb-6 text-center">Create Your Account</h2>
 
-        {/* Full Name input field */}
+        {/* Full Name input */}
         <input
           className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
           placeholder="Full Name"
@@ -79,7 +74,7 @@ export default function Register() {
           onChange={(e) => setFullName(e.target.value)}
         />
 
-        {/* Email input field */}
+        {/* Email input */}
         <input
           type="email"
           className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
@@ -88,7 +83,7 @@ export default function Register() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
-        {/* Password input field */}
+        {/* Password input */}
         <input
           type="password"
           className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
@@ -105,7 +100,7 @@ export default function Register() {
           Register
         </button>
 
-        {/* Link to login page */}
+        {/* Link to login */}
         <p className="text-sm mt-4 text-center text-gray-600">
           Already have an account?{' '}
           <Link to="/login" className="text-blue-600 hover:underline">
