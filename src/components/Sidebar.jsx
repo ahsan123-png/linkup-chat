@@ -11,7 +11,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
             key={user}
             className={`p-3 rounded-lg cursor-pointer ${
               selectedUser === user
-                ? 'bg-blue-600'
+                ? 'bg-[#4CAF50]'
                 : 'bg-[#2a2a2a] hover:bg-[#3a3a3a]'
             }`}
             onClick={() => onSelectUser(user)}

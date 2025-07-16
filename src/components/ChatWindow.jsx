@@ -33,13 +33,13 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-gray-100">
+    <div className="flex flex-col flex-1 bg-[url('./img/whatsapp-bg.png')] bg-cover bg-center">
       {/* 👤 Header displaying the current user's name and group members */}
-      <div className="bg-white shadow p-4 border-b">
+      <div className="bg-[#333333] shadow p-4 border-b">
         <div className="flex flex-col">
           <h3 className="font-semibold text-lg">{user}</h3> {/* 🧠 `user` prop shown here */}
           {members.length > 0 && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-100">
               Members: {members.join(', ')} {/* 👥 `members` prop used to list names */}
             </span>
           )}
@@ -53,8 +53,8 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
             key={index}
             className={`p-3 rounded-xl shadow max-w-sm ${
               msg.sender === 'You'
-                ? 'bg-blue-500 text-white ml-auto'
-                : 'bg-white text-black'
+                ? 'bg-[#4CAF50] text-white ml-auto'
+                : 'bg-[#332233] text-white'
             }`}
           >
             <p><strong>{msg.sender}:</strong> {msg.text}</p>
@@ -69,7 +69,7 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
       </div>
 
       {/* 📝 Input section with file preview and message field */}
-      <div className="p-4 bg-white border-t flex flex-col gap-2">
+      <div className="p-4 bg-[#333333] border-t flex flex-col gap-2">
         {previewUrl && (
           <div className="relative w-fit">
             {file.type.startsWith('image') ? (
@@ -95,19 +95,19 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
             type="file"
             accept="image/*,video/*"
             onChange={handleFileChange}
-            className="text-sm"
+            className="text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#4CAF50] file:text-white hover:file:bg-[#45a049] cursor-pointer"
           />
           <input
             type="text"
             placeholder="Type a message..."
-            className="flex-1 border border-gray-300 rounded-xl px-4 py-2 outline-none"
+            className="flex-1 border border-[#4CAF50] rounded-xl px-4 py-2 outline-none"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()} // ⌨️ Enter sends message
           />
           <button
             onClick={sendMessage}
-            className="bg-blue-500 text-white px-4 py-2 rounded-xl"
+            className="bg-[#4CAF50] text-white px-4 py-2 rounded-xl"
           >
             Send
           </button>
