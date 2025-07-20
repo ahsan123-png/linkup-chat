@@ -35,9 +35,9 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
   return (
     <div className="flex flex-col flex-1 bg-[url('./img/whatsapp-bg.png')] bg-cover bg-center">
       {/* 👤 Header displaying the current user's name and group members */}
-      <div className="bg-[#333333] shadow p-4 border-b">
+      <div className="bg-[#333333] shadow p-4 border-border-[#4CAF50] flex items-center justify-between">
         <div className="flex flex-col">
-          <h3 className="font-semibold text-lg">{user}</h3> {/* 🧠 `user` prop shown here */}
+          <h3 className="font-semibold text-lg text-white">{user}</h3> {/* 🧠 `user` prop shown here */}
           {members.length > 0 && (
             <span className="text-sm text-gray-100">
               Members: {members.join(', ')} {/* 👥 `members` prop used to list names */}
@@ -69,7 +69,7 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
       </div>
 
       {/* 📝 Input section with file preview and message field */}
-      <div className="p-4 bg-[#333333] border-t flex flex-col gap-2">
+      <div className="p-4 bg-[#333333] flex flex-col gap-2">
         {previewUrl && (
           <div className="relative w-fit">
             {file.type.startsWith('image') ? (
