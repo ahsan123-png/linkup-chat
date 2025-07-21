@@ -20,42 +20,56 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded shadow-md w-full max-w-sm"
-      >
-        <h2 className="text-xl font-semibold mb-6 text-center">Login to ChatApp</h2>
+    <div className="h-screen flex items-center justify-center bg-black">
+      {/* Login Card Box */}
+      <div className="bg-[#333333] rounded shadow-lg grid grid-cols-1 md:grid-cols-2 w-full max-w-4xl overflow-hidden h-5/6">
+        {/* Left side - Image */}
+        <div className="hidden md:block">
+          <img
+            src="src\img\login.jpg"
+            alt="Login Visual"
+            className="h-full w-full object-cover"
+          />
+        </div>
 
-        <input
-          className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        {/* Right side - Form */}
+        <div className="p-8 flex items-center justify-center">
+          <form onSubmit={handleLogin} className="w-full max-w-sm">
+            <h2 className="text-xl font-semibold mb-6 text-center text-white">
+              Login to ChatApp
+            </h2>
 
-        <input
-          type="password"
-          className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+            <input
+              className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-        >
-          Login
-        </button>
+            <input
+              type="password"
+              className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-        <p className="text-sm mt-4 text-center text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Register
-          </Link>
-        </p>
-      </form>
+            <button
+              type="submit"
+              className="w-full bg-[#4CAF50] text-white py-2 rounded hover:bg-green-700 transition"
+            >
+              Login
+            </button>
+
+            <p className="text-sm mt-4 text-center text-white">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-[#4CAF50] hover:underline">
+                Register
+              </Link>
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
