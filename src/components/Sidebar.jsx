@@ -25,18 +25,32 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
         </div>
       </div>
 
-      <h2 className="text-xl font-bold my-4">Chats</h2>
 
-      <div className="p-2 bg-[#1f1f1f]">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search or start new chat"
-            className="mb-9 w-full py-2 pl-10 pr-4 bg-[#1F1F1F] text-white rounded-lg focus:outline-none"
-          />
-          <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-        </div>
+      <div className="p-4 bg-[#1f1f1f]">
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search or start new chat"
+          className="
+          w-full 
+          py-2 
+          pl-10 
+          pr-4 
+          bg-[#1f1f1f] 
+          text-white 
+          placeholder-gray-400 
+          border-b-2 
+          border-green-500 
+          focus:bg-black 
+          focus:outline-none 
+          transition-colors
+          duration-200
+          "
+        />
+        <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400  cursor-pointer"></i>
       </div>
+        <h2 className="text-xl font-bold mt-8">Chats</h2>
+    </div>
 
 <div className="space-y-0 mt-4"> {/* Changed space-y-3 to space-y-0 for no gap between items */}
   {users?.map((user) => (
