@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from './AuthContext'; // <-- Import AuthContext to handle frontend login
+import { useAuth } from './AuthContext';
 
 export default function Register() {
   const [fullName, setFullName] = useState('');
@@ -8,12 +8,11 @@ export default function Register() {
   const [password, setPassword] = useState('');
 
   const navigate = useNavigate();
-  const { login } = useAuth(); // <-- login from context
+  const { login } = useAuth();
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    // Validate fields
     if (!fullName.trim() || !email.trim() || !password.trim()) {
       alert('Please fill all fields');
       return;
@@ -37,19 +36,14 @@ export default function Register() {
       if (response.ok) {
         const data = await response.json();
 
-        // Store tokens and user info
         localStorage.setItem('access_token', data.tokens.access);
         localStorage.setItem('refresh_token', data.tokens.refresh);
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        // Log the user in (frontend context)
-        login(fullName); // or login(data.user.full_name) if returned
-
-        // Redirect to chat
+        login(fullName); // or data.user.full_name
         navigate('/chat');
       } else {
         const errorData = await response.json();
-        console.error('Registration failed:', errorData);
         alert('Registration failed: ' + (errorData.message || 'Please try again.'));
       }
     } catch (error) {
@@ -59,55 +53,65 @@ export default function Register() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleRegister}
-        className="bg-white p-8 rounded shadow-md w-full max-w-sm"
-      >
-        <h2 className="text-xl font-semibold mb-6 text-center">Create Your Account</h2>
+    <div className="h-screen flex items-center justify-center bg-gray-950">
+      {/* Form Box with Grid inside */}
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+        
+        {/* Left side image */}
+        <div className="hidden md:block">
+          <img
+            src="src\img\register.jpg"
+            alt="Register Visual"
+            className="h-full w-full object-cover"
+          />
+        </div>
 
-        {/* Full Name input */}
-        <input
-          className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
-          placeholder="Full Name"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-        />
+        {/* Right side form */}
+        <div className="p-8 flex items-center justify-center bg-[#1f1f1f]">
+          <form onSubmit={handleRegister} className="w-full max-w-sm">
+            <h2 className="text-xl font-semibold mb-6 text-center text-white">
+              Create Your Account
+            </h2>
 
-        {/* Email input */}
-        <input
-          type="email"
-          className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+            <input
+              className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
 
-        {/* Password input */}
-        <input
-          type="password"
-          className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+            <input
+              type="email"
+              className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-        {/* Submit button */}
-        <button
-          type="submit"
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
-        >
-          Register
-        </button>
+            <input
+              type="password"
+              className="w-full border px-3 py-2 mb-4 rounded outline-none focus:ring-2 focus:ring-green-400"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-        {/* Link to login */}
-        <p className="text-sm mt-4 text-center text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
-          </Link>
-        </p>
-      </form>
+            <button
+              type="submit"
+              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+            >
+              Register
+            </button>
+
+            <p className="text-sm mt-4 text-center text-white">
+              Already have an account?{' '}
+              <Link to="/login" className="text-green-400 hover:underline">
+                Login
+              </Link>
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
