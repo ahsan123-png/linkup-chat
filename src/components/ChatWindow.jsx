@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
-// Props used: `user`, `messages`, `onSend`, `members`
+// Props:
+// - `user`: string – the current user's name
+// - `messages`: array – all messages to display
+// - `onSend`: function – handles sending a message
+// - `members`: array – group or chat members
 export default function ChatWindow({ user, messages = [], onSend, members = [] }) {
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
 
-  // 🔄 Handles file selection and generates preview URL
+  // 🧷 Reference to the bottom of the message list
+  const bottomRef = useRef(null);
+
+  // 📜 Scroll to the newest message when `messages` change
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // 📁 Handle file selection and preview generation
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
@@ -15,18 +27,18 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
     setPreviewUrl(URL.createObjectURL(selected));
   };
 
-  // ✉️ Constructs the message object and calls the `onSend` prop
+  // 📤 Send message object via `onSend` prop
   const sendMessage = () => {
     if (input.trim() === '' && !file) return;
 
     const message = {
-      sender: 'You',                // Static value for now
-      text: input.trim(),          // User input text
-      file: file ? previewUrl : null,  // Preview URL for image/video
-      fileType: file?.type || null,    // File MIME type (e.g., image/jpeg)
+      sender: 'You',
+      text: input.trim(),
+      file: file ? previewUrl : null,
+      fileType: file?.type || null,
     };
 
-    onSend(message); // 🔧 Prop function passed from parent, triggers message send logic
+    onSend(message);
     setInput('');
     setFile(null);
     setPreviewUrl('');
@@ -34,42 +46,47 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
 
   return (
     <div className="flex flex-col flex-1 bg-[url('./img/whatsapp-bg.png')] bg-cover bg-center">
-      {/* 👤 Header displaying the current user's name and group members */}
-      <div className="bg-[#333333] shadow p-4 border-border-[#4CAF50] flex items-center justify-between">
+      
+      {/* 👤 Header: displays current user and members */}
+      <div className="bg-[#333333] shadow p-4 flex items-center justify-between border-b border-[#4CAF50]">
         <div className="flex flex-col">
-          <h3 className="font-semibold text-lg text-white">{user}</h3> {/* 🧠 `user` prop shown here */}
+          <h3 className="font-semibold text-lg text-white">{user}</h3>
           {members.length > 0 && (
             <span className="text-sm text-gray-100">
-              Members: {members.join(', ')} {/* 👥 `members` prop used to list names */}
+              Members: {members.join(', ')}
             </span>
           )}
         </div>
       </div>
 
-      {/* 💬 Message list displayed from the `messages` prop */}
-      <div className="flex-1 p-4 overflow-y-auto space-y-4">
-        {messages.map((msg, index) => (   // 📦 `messages` prop iterated to render chat bubbles
-          <div
-            key={index}
-            className={`p-3 rounded-xl shadow max-w-sm ${
-              msg.sender === 'You'
-                ? 'bg-[#4CAF50] text-white ml-auto'
-                : 'bg-[#332233] text-white'
-            }`}
-          >
-            <p><strong>{msg.sender}:</strong> {msg.text}</p>
-            {msg.file && msg.fileType?.startsWith('image') && (
-              <img src={msg.file} alt="media" className="mt-2 rounded-lg max-h-48" />
-            )}
-            {msg.file && msg.fileType?.startsWith('video') && (
-              <video src={msg.file} controls className="mt-2 rounded-lg max-h-48" />
-            )}
-          </div>
-        ))}
-      </div>
+      {/* 💬 Messages Area */}
+      <div className="flex-1 overflow-y-auto flex flex-col-reverse p-4 space-y-4 space-y-reverse">
+  {/* Render messages in reverse order */}
+  {[...messages].reverse().map((msg, index) => (
+    <div
+      key={index}
+      className={`p-3 rounded-xl shadow max-w-sm ${
+        msg.sender === 'You'
+          ? 'bg-[#4CAF50] text-white ml-auto'
+          : 'bg-[#332233] text-white mr-auto'
+      }`}
+    >
+      <p><strong>{msg.sender}:</strong> {msg.text}</p>
+      {msg.file && msg.fileType?.startsWith('image') && (
+        <img src={msg.file} alt="media" className="mt-2 rounded-lg max-h-48" />
+      )}
+      {msg.file && msg.fileType?.startsWith('video') && (
+        <video src={msg.file} controls className="mt-2 rounded-lg max-h-48" />
+      )}
+    </div>
+  ))}
+  <div ref={bottomRef} />
+</div>
 
-      {/* 📝 Input section with file preview and message field */}
+      {/* 📝 Input Section */}
       <div className="p-4 bg-[#333333] flex flex-col gap-2">
+        
+        {/* 📸 Preview of selected media */}
         {previewUrl && (
           <div className="relative w-fit">
             {file.type.startsWith('image') ? (
@@ -89,7 +106,7 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
           </div>
         )}
 
-        {/* 🧾 Text and file inputs for message creation */}
+        {/* ✍️ Message Input + 📁 File Upload */}
         <div className="flex items-center gap-2">
           <input
             type="file"
@@ -100,14 +117,14 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
           <input
             type="text"
             placeholder="Type a message..."
-            className="flex-1 border border-[#4CAF50] rounded-xl px-4 py-2 outline-none"
+            className="flex-1 border border-[#4CAF50] rounded-xl px-4 py-2 outline-none text-white bg-[#1a1a1a] placeholder-gray-400"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()} // ⌨️ Enter sends message
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           />
           <button
             onClick={sendMessage}
-            className="bg-[#4CAF50] text-white px-4 py-2 rounded-xl"
+            className="bg-[#4CAF50] text-white px-4 py-2 rounded-xl hover:bg-[#45a049] transition"
           >
             Send
           </button>
