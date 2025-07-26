@@ -1,3 +1,4 @@
+// ChatLayout.js
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
@@ -5,7 +6,6 @@ import { useAuth } from './AuthContext';
 
 export default function ChatLayout() {
   const { logout } = useAuth();
-
   const [selectedUser, setSelectedUser] = useState('John');
   const [messages, setMessages] = useState({
     John: [
@@ -22,9 +22,18 @@ export default function ChatLayout() {
       { sender: 'You', text: 'Hello 👋' },
     ],
   });
-
   const [groupMembers] = useState({
     'Dev Team 👨‍💻': ['You', 'Alice', 'John'],
+  });
+
+  // Use relative paths from the project's public directory
+  // Ensure these files exist in your project's `public/img/` folder
+  const [profilePictures] = useState({
+    John: 'src/img/jhon.jpg',       // Path relative to public folder
+    Alice: 'src/img/alice.jpg',
+    'Dev Team 👨‍💻': 'src/img/user4.jpg',
+    'You': '/img/you.jpg',       // Avatar for the current user in 1:1 chats if needed
+    // Default fallback can be handled in ChatWindow
   });
 
   const handleSend = (newMessage) => {
@@ -37,10 +46,18 @@ export default function ChatLayout() {
   const chatList = Object.keys(messages);
   const currentMessages = messages[selectedUser] || [];
   const currentMembers = groupMembers[selectedUser] || [];
+  
+  // Get the profile picture URL for the selected user
+  const currentUserProfilePic = profilePictures[selectedUser] || '/img/default-avatar.jpg'; // Provide a default
 
   return (
     <div className="flex h-screen">
-      <Sidebar users={chatList} selectedUser={selectedUser} onSelectUser={setSelectedUser} />
+      {/* Ensure Sidebar correctly receives selectedUser value, not the setter */}
+      <Sidebar 
+        users={chatList} 
+        selectedUser={selectedUser} // Pass the value, not the setter
+        onSelectUser={setSelectedUser} 
+      />
 
       {selectedUser && (
         <ChatWindow
@@ -48,6 +65,7 @@ export default function ChatLayout() {
           messages={currentMessages}
           onSend={handleSend}
           members={currentMembers}
+          profilePic={currentUserProfilePic} // Pass the profile picture URL
         />
       )}
 

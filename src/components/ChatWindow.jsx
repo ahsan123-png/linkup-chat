@@ -5,20 +5,17 @@ import React, { useState, useRef, useEffect } from 'react';
 // - `messages`: array – all messages to display
 // - `onSend`: function – handles sending a message
 // - `members`: array – group or chat members
-export default function ChatWindow({ user, messages = [], onSend, members = [] }) {
+// - `profilePic`: string – the URL of the selected user's profile picture (NEW PROP)
+export default function ChatWindow({ user, messages = [], onSend, members = [], profilePic }) { // Add profilePic to destructuring 
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
-
-  // 🧷 Reference to the bottom of the message list
   const bottomRef = useRef(null);
 
-  // 📜 Scroll to the newest message when `messages` change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 📁 Handle file selection and preview generation
   const handleFileChange = (e) => {
     const selected = e.target.files[0];
     if (!selected) return;
@@ -27,7 +24,6 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
     setPreviewUrl(URL.createObjectURL(selected));
   };
 
-  // 📤 Send message object via `onSend` prop
   const sendMessage = () => {
     if (input.trim() === '' && !file) return;
 
@@ -46,46 +42,55 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
 
   return (
     <div className="flex flex-col flex-1 bg-[url('./img/whatsapp-bg.png')] bg-cover bg-center">
-      
-      {/* 👤 Header: displays current user and members */}
+
+      {/* 👤 Header: displays current user, profile picture, and members */}
       <div className="bg-[#333333] shadow p-4 flex items-center justify-between border-b border-[#4CAF50]">
-        <div className="flex flex-col">
-          <h3 className="font-semibold text-lg text-white">{user}</h3>
-          {members.length > 0 && (
-            <span className="text-sm text-gray-100">
-              Members: {members.join(', ')}
-            </span>
+        <div className="flex items-center"> {/* Added flex container for profile pic and text */}
+          {profilePic && (
+            <img
+              src={profilePic}
+              alt={`${user}'s profile`}
+              className="w-10 h-10 rounded-full mr-3 object-cover" // Styling for profile picture
+            />
           )}
+          <div className="flex flex-col">
+            <h3 className="font-semibold text-lg text-white">{user}</h3>
+            {members.length > 0 && (
+              <span className="text-sm text-gray-100">
+                Members: {members.join(', ')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* 💬 Messages Area */}
       <div className="flex-1 overflow-y-auto flex flex-col-reverse p-4 space-y-4 space-y-reverse">
-  {/* Render messages in reverse order */}
-  {[...messages].reverse().map((msg, index) => (
-    <div
-      key={index}
-      className={`p-3 rounded-xl shadow max-w-sm ${
-        msg.sender === 'You'
-          ? 'bg-[#4CAF50] text-white ml-auto'
-          : 'bg-[#332233] text-white mr-auto'
-      }`}
-    >
-      <p><strong>{msg.sender}:</strong> {msg.text}</p>
-      {msg.file && msg.fileType?.startsWith('image') && (
-        <img src={msg.file} alt="media" className="mt-2 rounded-lg max-h-48" />
-      )}
-      {msg.file && msg.fileType?.startsWith('video') && (
-        <video src={msg.file} controls className="mt-2 rounded-lg max-h-48" />
-      )}
-    </div>
-  ))}
-  <div ref={bottomRef} />
-</div>
+        {/* Render messages in reverse order */}
+        {[...messages].reverse().map((msg, index) => (
+          <div
+            key={index}
+            className={`p-3 rounded-xl shadow max-w-sm ${
+              msg.sender === 'You'
+                ? 'bg-[#4CAF50] text-white ml-auto'
+                : 'bg-[#332233] text-white mr-auto'
+            }`}
+          >
+            <p><strong>{msg.sender}:</strong> {msg.text}</p>
+            {msg.file && msg.fileType?.startsWith('image') && (
+              <img src={msg.file} alt="media" className="mt-2 rounded-lg max-h-48" />
+            )}
+            {msg.file && msg.fileType?.startsWith('video') && (
+              <video src={msg.file} controls className="mt-2 rounded-lg max-h-48" />
+            )}
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
 
       {/* 📝 Input Section */}
       <div className="p-4 bg-[#333333] flex flex-col gap-2">
-        
+
         {/* 📸 Preview of selected media */}
         {previewUrl && (
           <div className="relative w-fit">
