@@ -152,7 +152,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
 
         {/* Chat List Container - Takes remaining space and scrolls */}
         {/* mt-4 for spacing, flex-1 to fill remaining space, overflow-y-auto for scrollbar */}
-        <div className="mt-4 flex-1 min-h-0 overflow-y-auto"> 
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto "> 
           {/* Handle loading and error states for user list */}
           {loadingUsers && <div className="p-3 text-gray-400">Loading users...</div>}
           {errorUsers && <div className="p-3 text-red-400">Error loading users: {errorUsers}</div>}
