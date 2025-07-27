@@ -1,12 +1,15 @@
+// ChatWindow.js
 import React, { useState, useRef, useEffect } from 'react';
 
 // Props:
-// - `user`: string – the current user's name
+// - `user`: object – the current user's data { name: string, avatar: string }
 // - `messages`: array – all messages to display
 // - `onSend`: function – handles sending a message
-// - `members`: array – group or chat members
-// - `profilePic`: string – the URL of the selected user's profile picture (NEW PROP)
-export default function ChatWindow({ user, messages = [], onSend, members = [], profilePic }) { // Add profilePic to destructuring 
+// - `members`: array – group or chat members data [{ name: string, avatar: string }, ...]
+export default function ChatWindow({ user, messages = [], onSend, members = [] }) {
+  // Ensure user is an object, provide fallback if it's still a string (good practice during transition)
+  const userObj = typeof user === 'string' ? { name: user, avatar: '/img/default-avatar.jpg' } : user;
+
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -46,18 +49,23 @@ export default function ChatWindow({ user, messages = [], onSend, members = [], 
       {/* 👤 Header: displays current user, profile picture, and members */}
       <div className="bg-[#333333] shadow p-4 flex items-center justify-between border-b border-[#4CAF50]">
         <div className="flex items-center"> {/* Added flex container for profile pic and text */}
-          {profilePic && (
+          {/* Use avatar from the user object */}
+          {userObj.avatar && (
             <img
-              src={profilePic}
-              alt={`${user}'s profile`}
-              className="w-10 h-10 rounded-full mr-3 object-cover" // Styling for profile picture
+              src={userObj.avatar}
+              alt={`${userObj.name}'s profile`}
+              className="w-10 h-10 rounded-full mr-3 object-cover"
+              onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }} // Fallback
             />
           )}
           <div className="flex flex-col">
-            <h3 className="font-semibold text-lg text-white">{user}</h3>
+            {/* Use name from the user object */}
+            <h3 className="font-semibold text-lg text-white">{userObj.name}</h3>
+            {/* Display members if available (assuming they are objects now) */}
             {members.length > 0 && (
               <span className="text-sm text-gray-100">
-                Members: {members.join(', ')}
+                {/* Join member names, or display avatars if desired */}
+                Members: {members.map(m => m.name).join(', ')}
               </span>
             )}
           </div>
@@ -94,7 +102,7 @@ export default function ChatWindow({ user, messages = [], onSend, members = [], 
         {/* 📸 Preview of selected media */}
         {previewUrl && (
           <div className="relative w-fit">
-            {file.type.startsWith('image') ? (
+            {file?.type?.startsWith('image') ? ( // Added optional chaining
               <img src={previewUrl} alt="preview" className="max-h-40 rounded-lg" />
             ) : (
               <video src={previewUrl} className="max-h-40 rounded-lg" controls />
