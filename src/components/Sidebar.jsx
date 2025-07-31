@@ -66,59 +66,6 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
        setCurrentUser(prev => ({ ...prev, name: authUserName }));
     }
   }, [dynamicUsers]); // Re-run when dynamicUsers changes
-
-  // --- Fetch users from API (if Sidebar fetches independently) ---
-  // If you decide Sidebar should fetch its own data, uncomment and adjust this section.
-  // It would be similar to ChatLayout's fetch, including the token.
-  /*
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoadingUsers(true);
-      setErrorUsers(null);
-      try {
-        const accessToken = localStorage.getItem('access_token');
-        if (!accessToken) {
-          throw new Error('No access token found for Sidebar fetch.');
-        }
-
-        const response = await fetch('http://127.0.0.1:8000/users/get/all/', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Sidebar fetch failed: HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const transformedUsers = data.map(user => ({
-          id: user.id,
-          name: user.full_name || user.username,
-          username: user.username,
-          avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : '/img/default-avatar.jpg',
-          status: user.status || 'Available',
-        }));
-
-        setDynamicUsers(transformedUsers);
-        setLoadingUsers(false);
-      } catch (err) {
-        console.error("Failed to fetch users in Sidebar:", err);
-        setErrorUsers(err.message);
-        setLoadingUsers(false);
-      }
-    };
-
-    // Only fetch if not already provided or if needed to refresh
-    if (allUsersData.length === 0) {
-       fetchUsers();
-    }
-  }, [allUsersData]); // Dependency array
-  */
-
-
   // --- Handler functions for the profile popup ---
   const openProfilePopup = () => setIsProfilePopupOpen(true);
   const closeProfilePopup = () => setIsProfilePopupOpen(false);
