@@ -1,5 +1,5 @@
 // ChatLayout.js
-import { useState, useEffect } from 'react'; // Added useEffect
+import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import { useAuth } from './AuthContext';
@@ -39,10 +39,32 @@ export default function ChatLayout() {
       setLoadingUsers(true);
       setErrorUsers(null);
       try {
-        const response = await fetch('http://127.0.0.1:8000/users/get/all/');
+        // --- Get access token from localStorage ---
+        const accessToken = localStorage.getItem('access_token');
+
+        if (!accessToken) {
+          throw new Error('No access token found. Please log in.');
+        }
+
+        const response = await fetch('http://127.0.0.1:8000/users/get/all/', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`, // Add Bearer token
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
+          // Handle specific error cases like 401 Unauthorized
+          if (response.status === 401) {
+             // Token might be expired, trigger logout or refresh flow
+             console.error("Unauthorized access - Token might be invalid or expired.");
+             logout(); // Or handle refresh token logic here
+             throw new Error('Unauthorized. Please log in again.');
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const data = await response.json();
 
         // Transform API data
@@ -60,28 +82,27 @@ export default function ChatLayout() {
         console.error("Failed to fetch users in ChatLayout:", err);
         setErrorUsers(err.message);
         setLoadingUsers(false);
-        // Handle error (e.g., show message)
+        // Handle error (e.g., show message, redirect to login if 401)
+        // You might want to trigger logout if it's an auth error
+        if (err.message.includes('Unauthorized') || err.message.includes('token')) {
+             // logout(); // Example: logout on auth failure
+        }
       }
     };
 
     fetchUsers();
-  }, []); // Run once on mount
+  }, [logout]); // Add logout to dependencies if it's stable
 
   // --- Find data for the selected user ---
-  // This will be an object like { name, avatar } or null if not found/loading
   const selectedUserData = allUsersData.find(u => u.name === selectedUser) || {
-    name: selectedUser, // Fallback to the name if not found (e.g., for groups)
-    avatar: '/img/default-avatar.jpg', // Default avatar
+    name: selectedUser,
+    avatar: '/img/default-avatar.jpg',
   };
 
-  // --- Find data for group members (basic example, might need refinement) ---
-  // This assumes member names in groupMembers match user names from the API
+  // --- Find data for group members ---
   const currentMembersData = (groupMembers[selectedUser] || []).map(memberName => {
-     // Special case for 'You' or handle current user logic if needed
      if (memberName === 'You') {
-         // You might want to get the actual current user's data here from AuthContext or state
-         // For now, using a placeholder
-         return { name: 'You', avatar: '/img/you.jpg' };
+         return { name: 'You', avatar: '/img/you.jpg' }; // Adjust path or fetch real 'You' data
      }
      return allUsersData.find(u => u.name === memberName) || { name: memberName, avatar: '/img/default-avatar.jpg' };
   });
@@ -95,10 +116,7 @@ export default function ChatLayout() {
 
   const chatList = Object.keys(messages);
   const currentMessages = messages[selectedUser] || [];
-  const currentMembers = groupMembers[selectedUser] || []; // Keep original names for ChatWindow if needed, or pass currentMembersData
-
-  // Get the profile picture URL for the selected user (now from dynamic data)
-  // const currentUserProfilePic = profilePictures[selectedUser] || '/img/default-avatar.jpg'; // Removed old static map
+  const currentMembers = groupMembers[selectedUser] || [];
 
   return (
     <div className="flex h-screen">
@@ -106,22 +124,17 @@ export default function ChatLayout() {
         users={chatList}
         selectedUser={selectedUser}
         onSelectUser={setSelectedUser}
-        // Pass dynamic user data to Sidebar if needed (e.g., for CreateGroupPopup)
-        // dynamicUsers={allUsersData} // Optional: if Sidebar needs the full list
+        // Pass user data for Sidebar if it needs to make its own API calls or for filtering
+        allUsersData={allUsersData} // Pass the fetched user data
       />
-
       {selectedUser && (
         <ChatWindow
-          // Pass the DYNAMIC user data object instead of just the name
-          user={selectedUserData} // Pass object { name, avatar }
+          user={selectedUserData}
           messages={currentMessages}
           onSend={handleSend}
-          // Pass the DYNAMIC member data if ChatWindow is updated to use it
-          members={currentMembersData} // Pass array of objects [{ name, avatar }, ...]
-          // profilePic={currentUserProfilePic} // Removed, now passed via user object
+          members={currentMembersData}
         />
       )}
-
       <div className="absolute top-2 right-2">
         <button
           onClick={logout}

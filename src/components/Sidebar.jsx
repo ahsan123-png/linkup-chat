@@ -3,64 +3,132 @@ import React, { useState, useEffect } from 'react';
 import UserProfilePopup from './UserProfilePopup';
 import CreateGroupPopup from './CreateGroupPopup';
 
-export default function Sidebar({ users, selectedUser, onSelectUser }) {
+export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const [isCreateGroupPopupOpen, setIsCreateGroupPopupOpen] = useState(false);
 
-  // --- State for dynamic user data ---
-  const [dynamicUsers, setDynamicUsers] = useState([]); // Stores fetched user objects
-  const [loadingUsers, setLoadingUsers] = useState(true); // Loading state
-  const [errorUsers, setErrorUsers] = useState(null); // Error state
+  // --- State for dynamic user data (if Sidebar fetches independently) ---
+  // Note: ChatLayout now passes allUsersData, so Sidebar might not need to fetch again
+  // unless it needs a different or more frequent update.
+  // For now, let's rely on the data passed from ChatLayout.
+  const [dynamicUsers, setDynamicUsers] = useState(allUsersData); // Use prop or fetch if needed
+  const [loadingUsers, setLoadingUsers] = useState(false); // Initially false if relying on prop
+  const [errorUsers, setErrorUsers] = useState(null);
 
-  // --- Mock current user data (for profile popup) ---
-  // In a real app, this should also ideally come from the API/Auth
+  // --- Sync dynamicUsers state if allUsersData prop changes ---
+  useEffect(() => {
+    setDynamicUsers(allUsersData);
+    // Reset loading/error if new data comes in?
+    // setLoadingUsers(false);
+    // setErrorUsers(null);
+  }, [allUsersData]);
+
+  // --- Mock current user data (should ideally come from AuthContext or props) ---
+  // This part still needs to be dynamic. You might pass the current user's data
+  // from ChatLayout or fetch it based on the token.
+  // Let's assume you have a way to identify the current user from the fetched list
+  // or AuthContext provides the username/full_name.
+  // For demonstration, let's try to get it from localStorage user data or AuthContext.
+  // This logic might need refinement based on your `useAuth` context structure.
+
   const [currentUser, setCurrentUser] = useState({
-    name: 'John Doe', // Placeholder, should be dynamic
+    name: 'Loading User...', // Initial placeholder
     status: 'Hey there! I am using this app.',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg', // Placeholder, should be dynamic
+    avatar: '/img/default-avatar.jpg', // Initial placeholder
   });
 
-  // --- Fetch users from API ---
+  // Effect to set currentUser based on fetched data or auth context
+  useEffect(() => {
+    // Example: Get current user identifier from localStorage or useAuth
+    const storedUserData = JSON.parse(localStorage.getItem('user'));
+    const authUserName = storedUserData?.full_name || storedUserData?.username; // Adjust based on your stored user structure
+
+    if (authUserName && dynamicUsers.length > 0) {
+      // Find the current user in the fetched list
+      const foundCurrentUser = dynamicUsers.find(u => u.name === authUserName || u.username === authUserName);
+      if (foundCurrentUser) {
+        setCurrentUser({
+          name: foundCurrentUser.name,
+          status: foundCurrentUser.status || 'Available',
+          avatar: foundCurrentUser.avatar,
+        });
+      } else {
+        // Fallback if user not found in list (shouldn't happen if list is complete)
+        console.warn("Current user not found in fetched user list.");
+        setCurrentUser({
+          name: authUserName,
+          status: 'Online',
+          // avatar: '/img/default-avatar.jpg', // Or a default path
+        });
+      }
+    } else if (authUserName) {
+       // If we have the name but haven't loaded users yet, set name at least
+       setCurrentUser(prev => ({ ...prev, name: authUserName }));
+    }
+  }, [dynamicUsers]); // Re-run when dynamicUsers changes
+
+  // --- Fetch users from API (if Sidebar fetches independently) ---
+  // If you decide Sidebar should fetch its own data, uncomment and adjust this section.
+  // It would be similar to ChatLayout's fetch, including the token.
+  /*
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoadingUsers(true);
+      setErrorUsers(null);
       try {
-        const response = await fetch('http://127.0.0.1:8000/users/get/all/');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const accessToken = localStorage.getItem('access_token');
+        if (!accessToken) {
+          throw new Error('No access token found for Sidebar fetch.');
         }
-        const data = await response.json();
 
-        // Transform API data into the format needed by the UI
+        const response = await fetch('http://127.0.0.1:8000/users/get/all/', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Sidebar fetch failed: HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
         const transformedUsers = data.map(user => ({
           id: user.id,
-          name: user.full_name || user.username, // Use full_name, fallback to username
-          username: user.username, // Keep username for potential use
-          avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : '/img/default-avatar.jpg', // Prefix with base URL and add fallback
-          status: user.status || 'Available', // Use status or default
+          name: user.full_name || user.username,
+          username: user.username,
+          avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : '/img/default-avatar.jpg',
+          status: user.status || 'Available',
         }));
 
         setDynamicUsers(transformedUsers);
         setLoadingUsers(false);
       } catch (err) {
-        console.error("Failed to fetch users:", err);
+        console.error("Failed to fetch users in Sidebar:", err);
         setErrorUsers(err.message);
         setLoadingUsers(false);
-        // Optionally, set some default users or show an error message in the UI
       }
     };
 
-    fetchUsers();
-  }, []); // Empty dependency array means this runs once on mount
+    // Only fetch if not already provided or if needed to refresh
+    if (allUsersData.length === 0) {
+       fetchUsers();
+    }
+  }, [allUsersData]); // Dependency array
+  */
+
 
   // --- Handler functions for the profile popup ---
   const openProfilePopup = () => setIsProfilePopupOpen(true);
   const closeProfilePopup = () => setIsProfilePopupOpen(false);
 
   const handleSaveProfile = (updatedData) => {
-    console.log('Saving profile ', updatedData);
+    console.log('Saving profile data:', updatedData);
     setCurrentUser(prev => ({ ...prev, ...updatedData }));
     alert('Profile updated successfully! (This is a demo)');
     // TODO: In a real app, call an API endpoint to update the user's profile
+    // This would likely require another authenticated fetch with the token.
   };
 
   const handleGoToSettings = () => {
@@ -75,24 +143,20 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
   const closeCreateGroupPopup = () => setIsCreateGroupPopupOpen(false);
 
   const handleCreateGroup = (groupData) => {
-    console.log('Creating group with ', groupData);
-    // Example: Log the selected user objects based on names
+    console.log('Creating group with data:', groupData);
     const selectedUserData = dynamicUsers.filter(u => groupData.members.includes(u.name));
     console.log('Selected user data for group:', selectedUserData);
-
     alert(`Group '${groupData.name}' creation requested! (Demo)\nMembers: ${groupData.members.join(', ')}`);
     // TODO: Integrate with ChatLayout or a global state/context to:
     // 1. Add the new group to the chat list
-    // 2. Potentially call an API to create the group on the backend
+    // 2. Potentially call an API to create the group on the backend (needs auth token)
     // 3. Update messages/groupMembers state if needed
   };
-
 
   return (
     <>
       {/* Main Sidebar Container - Flex Column to manage internal layout */}
       <div className="flex flex-col w-1/4 bg-[#1f1f1f] text-white p-4 h-screen">
-        
         {/* Profile Header Section - Fixed at the top */}
         <div
           className="bg-[#1F1F1F] p-3 flex justify-between items-center text-black rounded-lg mb-5 cursor-pointer hover:bg-[#2a2a2a] transition flex-shrink-0"
@@ -104,7 +168,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
                 src={currentUser.avatar}
                 alt={`${currentUser.name}'s Profile`}
                 className="w-10 h-10 rounded-full cursor-pointer"
-                onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }}
+                // onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }}
               />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
             </div>
@@ -151,48 +215,46 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
         </div>
 
         {/* Chat List Container - Takes remaining space and scrolls */}
-        {/* mt-4 for spacing, flex-1 to fill remaining space, overflow-y-auto for scrollbar */}
-        <div className="mt-4 flex-1 min-h-0 overflow-y-auto "> 
-          {/* Handle loading and error states for user list */}
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto sidebar-chat-list">
+          {/* Handle loading and error states */}
           {loadingUsers && <div className="p-3 text-gray-400">Loading users...</div>}
           {errorUsers && <div className="p-3 text-red-400">Error loading users: {errorUsers}</div>}
-          
-          {/* Render ONLY the dynamic list of users fetched from API */}
-          {dynamicUsers?.map((user) => (
-             <div
-               key={user.id} // Use unique user ID as key
-               className={`flex items-center p-3 border-b border-gray-700 cursor-pointer ${
-                 selectedUser === user.name // Compare with user.name
-                   ? "bg-[#4CAF50] bg-opacity-20"
-                   : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
-               }`}
-               onClick={() => onSelectUser(user.name)} // Pass the user's name back to ChatLayout
-             >
-               <div className="relative mr-3">
-                 <img
-                   src={user.avatar} // Use avatar from dynamic data
-                   alt={`${user.name}'s avatar`}
-                   className="w-12 h-12 rounded-full"
-                   onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }} // Fallback on error
-                 />
-                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2a2a2a]"></span>
-               </div>
 
-               <div className="flex-1">
-                 <div className="flex justify-between items-center">
-                   <span className="font-semibold text-white">{user.name}</span>
-                   <span className="text-xs text-gray-400">10:30 AM</span> {/* Placeholder time */}
-                 </div>
-                 <div className="flex justify-between items-center">
-                   <p className="text-sm text-gray-400 truncate">{user.status}</p> {/* Use status */}
-                   {/* Placeholder unread count */}
-                   <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                     {/* {unreadCount} */} 3
-                   </span>
-                 </div>
-               </div>
-             </div>
-           ))}
+          {/* Render the list of users passed as props or fetched locally */}
+          {dynamicUsers?.map((user) => (
+            <div
+              key={user.id}
+              className={`flex items-center p-3 border-b border-gray-700 cursor-pointer ${
+                selectedUser === user.name
+                  ? "bg-[#4CAF50] bg-opacity-20"
+                  : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
+              }`}
+              onClick={() => onSelectUser(user.name)}
+            >
+              <div className="relative mr-3">
+                <img
+                  src={user.avatar}
+                  alt={`${user.name}'s avatar`}
+                  className="w-12 h-12 rounded-full"
+                  // onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }}
+                />
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2a2a2a]"></span>
+              </div>
+
+              <div className="flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-white">{user.name}</span>
+                  <span className="text-xs text-gray-400">10:30 AM</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-400 truncate">{user.status}</p>
+                  <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                    3
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -206,11 +268,10 @@ export default function Sidebar({ users, selectedUser, onSelectUser }) {
       />
 
       {/* Render the Create Group Popup */}
-      {/* Pass the DYNAMIC list of users (objects) for richer selection and the creation handler */}
       <CreateGroupPopup
         isOpen={isCreateGroupPopupOpen}
         onClose={closeCreateGroupPopup}
-        availableUsers={dynamicUsers} // Pass the array of user OBJECTS fetched from API
+        availableUsers={dynamicUsers} // Pass the array of user OBJECTS
         onCreateGroup={handleCreateGroup}
       />
     </>

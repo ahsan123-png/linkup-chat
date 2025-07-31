@@ -8,16 +8,21 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+  const handleLogin = async (e) => {
+  e.preventDefault();
 
-    if (username.trim() && password.trim()) {
-      login(username);
+  if (username.trim() && password.trim()) {
+    const success = await login(username, password);
+    if (success) {
       navigate('/chat');
     } else {
-      alert('Please fill all fields');
+      alert('Invalid credentials');
     }
-  };
+  } else {
+    alert('Please fill all fields');
+  }
+};
+
 
   return (
     <div className="h-screen flex items-center justify-center bg-black">
