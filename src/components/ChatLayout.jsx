@@ -40,7 +40,7 @@ export default function ChatLayout() {
       setErrorUsers(null);
       try {
         // --- Get access token from localStorage ---
-        const accessToken = localStorage.getItem('access_token');
+        const accessToken = localStorage.getItem('accessToken'); // ✅ Match the key from AuthContext
 
         if (!accessToken) {
           throw new Error('No access token found. Please log in.');
@@ -72,7 +72,7 @@ export default function ChatLayout() {
           id: user.id,
           name: user.full_name || user.username,
           username: user.username,
-          avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : '/img/default-avatar.jpg',
+          avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : null,
           status: user.status || 'Available',
         }));
 
