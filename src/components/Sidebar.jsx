@@ -2,11 +2,23 @@
 import React, { useState, useEffect } from 'react';
 import UserProfilePopup from './UserProfilePopup';
 import CreateGroupPopup from './CreateGroupPopup';
+import { useAuth } from './AuthContext';
 
 export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
+  // pickup data from user login and use here in sidebar like user id and image etc
+  const { userData } = useAuth();
+  const BASE_URL='http://127.0.0.1:8000';
+  const storedUser = JSON.parse(localStorage.getItem('user'));
+  const profileImageUrl = storedUser?.profile_image
+  ? `${BASE_URL}${storedUser.profile_image}`
+  : 'https://via.placeholder.com/150';
+  console.log("Logged in user info:", userData);
+
+  // State for popups
+  // Profile popup for current user
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const [isCreateGroupPopupOpen, setIsCreateGroupPopupOpen] = useState(false);
-
+   // fallback image
   // --- State for dynamic user data (if Sidebar fetches independently) ---
   // Note: ChatLayout now passes allUsersData, so Sidebar might not need to fetch again
   // unless it needs a different or more frequent update.
@@ -30,11 +42,11 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
   // or AuthContext provides the username/full_name.
   // For demonstration, let's try to get it from localStorage user data or AuthContext.
   // This logic might need refinement based on your `useAuth` context structure.
-
+  
   const [currentUser, setCurrentUser] = useState({
     name: 'Loading User...', // Initial placeholder
     status: 'Hey there! I am using this app.',
-    avatar: '/img/default-avatar.jpg', // Initial placeholder
+    avatar: 'src/img/avatar.png', // Initial placeholder
   });
 
   // Effect to set currentUser based on fetched data or auth context
@@ -98,7 +110,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
     // 1. Add the new group to the chat list
     // 2. Potentially call an API to create the group on the backend (needs auth token)
     // 3. Update messages/groupMembers state if needed
-  };
+  }
 
   return (
     <>
@@ -112,7 +124,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
           <div className="flex items-center space-x-3 text-white">
             <div className="relative">
               <img
-                src={currentUser.avatar}
+                src={profileImageUrl || currentUser.avatar}
                 alt={`${currentUser.name}'s Profile`}
                 className="w-10 h-10 rounded-full cursor-pointer"
                 // onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }}

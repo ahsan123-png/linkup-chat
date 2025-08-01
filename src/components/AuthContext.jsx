@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // ✅ Correct
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
@@ -9,21 +9,21 @@ export function AuthProvider({ children }) {
     return access ? jwtDecode(access) : null;
   });
 
+  const [userData, setUserData] = useState(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
   const login = async (username, password) => {
     try {
-      const payload = { username_or_email_or_phone:username, password:password };
-      console.log('Sending login payload:', payload);
-
+      const payload = { username_or_email_or_phone: username, password };
       const response = await fetch('http://127.0.0.1:8000/users/login/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      console.log('Login response status:', response.status);
-
       const data = await response.json();
-      console.log('Login response data:', data);
 
       if (!response.ok) {
         throw new Error(data.detail || 'Login failed');
@@ -34,6 +34,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(data.user));
 
       setUser(jwtDecode(data.tokens.access));
+      setUserData(data.user);  // 👈 store profile image, id, etc.
 
       return true;
     } catch (error) {
@@ -47,6 +48,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
+    setUserData(null);
   };
 
   const refreshAccessToken = async () => {
@@ -71,7 +73,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Optional: Auto-refresh token every 1 minute
+  // Auto-refresh every 1 minute
   useEffect(() => {
     const interval = setInterval(() => {
       const token = localStorage.getItem('accessToken');
@@ -87,7 +89,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, refreshAccessToken }}>
+    <AuthContext.Provider value={{ user, userData, login, logout, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );

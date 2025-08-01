@@ -8,7 +8,7 @@ import React, { useState, useRef, useEffect } from 'react';
 // - `members`: array – group or chat members data [{ name: string, avatar: string }, ...]
 export default function ChatWindow({ user, messages = [], onSend, members = [] }) {
   // Ensure user is an object, provide fallback if it's still a string (good practice during transition)
-  const userObj = typeof user === 'string' ? { name: user, avatar: '/img/default-avatar.jpg' } : user;
+  const userObj = typeof user === 'string' ? { name: user, avatar: '/img/avatar.png' } : user;
 
   const [input, setInput] = useState('');
   const [file, setFile] = useState(null);
@@ -55,7 +55,7 @@ export default function ChatWindow({ user, messages = [], onSend, members = [] }
               src={userObj.avatar}
               alt={`${userObj.name}'s profile`}
               className="w-10 h-10 rounded-full mr-3 object-cover"
-              onError={(e) => { e.target.src = '/img/default-avatar.jpg'; }} // Fallback
+              onError={(e) => { e.target.src = 'src/img/avatar.png'; }} // Fallback
             />
           )}
           <div className="flex flex-col">
