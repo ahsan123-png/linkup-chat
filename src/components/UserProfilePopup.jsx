@@ -41,7 +41,7 @@ const UserProfilePopup = ({ isOpen, onClose, currentUser, onSave, onGoToSettings
     const accessToken = localStorage.getItem('accessToken');
     console.error("Access Token:", accessToken);
     const user = JSON.parse(localStorage.getItem('user'));
-    const userId = user?.id;
+    const userId = user?.user_id || user?.id;
 
     if (!userId || !accessToken) {
       console.error("User not logged in or missing access token.");
