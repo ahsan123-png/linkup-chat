@@ -7,12 +7,38 @@ import { useAuth } from './AuthContext';
 export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
   // pickup data from user login and use here in sidebar like user id and image etc
   const { userData } = useAuth();
+  const { setUserData } = useAuth(); // make sure this line is already there
+
+  const handleProfileUpdate = (updatedUser) => {
+    // Cache-busting profile image
+    const updated = {
+      ...updatedUser,
+      profile_image: updatedUser.profile_image 
+        ? `http://127.0.0.1:8000${updatedUser.profile_image}?t=${Date.now()}`
+        : null,
+    };
+
+  // Save to context
+  setUserData(updated);
+  localStorage.setItem('user', JSON.stringify(updated));
+
+  // Update currentUser state too if needed
+  setCurrentUser(prev => ({
+    ...prev,
+    name: updated.full_name || updated.name || prev.name,
+    avatar: updated.profile_image || prev.avatar,
+    status: updated.status || prev.status,
+  }));
+};
+
   const BASE_URL='http://127.0.0.1:8000';
   const storedUser = JSON.parse(localStorage.getItem('user'));
-  const profileImageUrl = storedUser?.profile_image
-  ? `${BASE_URL}${storedUser.profile_image}`
+const profileImageUrl = storedUser?.profile_image
+  ? storedUser.profile_image.includes('http')
+    ? storedUser.profile_image
+    : `${BASE_URL}${storedUser.profile_image}`
   : 'https://via.placeholder.com/150';
-  console.log("Logged in user info:", userData);
+
 
   // State for popups
   // Profile popup for current user
@@ -220,11 +246,11 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
       {/* Render the User Profile Popup */}
       <UserProfilePopup
         isOpen={isProfilePopupOpen}
-        onClose={closeProfilePopup}
-        currentUser={currentUser}
-        onSave={handleSaveProfile}
-        onGoToSettings={handleGoToSettings}
-      />
+        onClose={() => setIsProfilePopupOpen(false)}
+        currentUser={userData}
+        onSave={handleProfileUpdate}
+        onGoToSettings={() => console.log("Go to settings clicked")}
+      />  
 
       {/* Render the Create Group Popup */}
       <CreateGroupPopup
