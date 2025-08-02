@@ -6,30 +6,41 @@ import { useAuth } from './AuthContext';
 
 export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
   // pickup data from user login and use here in sidebar like user id and image etc
-  const { userData } = useAuth();
-  const { setUserData } = useAuth(); // make sure this line is already there
+  const { userData, setUserData } = useAuth();
+  
 
   const handleProfileUpdate = (updatedUser) => {
-    // Cache-busting profile image
-    const updated = {
-      ...updatedUser,
-      profile_image: updatedUser.profile_image 
-        ? `http://127.0.0.1:8000${updatedUser.profile_image}?t=${Date.now()}`
-        : null,
-    };
+  // ✅ Normalize image URL to avoid duplicate "http://127.0.0.1:8000"
+  const baseURL = "http://127.0.0.1:8000";
 
-  // Save to context
+  // ✅ Check if the profile_image is a full URL or a relative path
+  const imageUrl = updatedUser.profile_image
+    ? updatedUser.profile_image.includes("http")
+      ? updatedUser.profile_image
+      : `${baseURL}${updatedUser.profile_image}`
+    : null;
+
+  // ✅ Add cache-busting query param if image exists
+  const updated = {
+    ...updatedUser,
+    profile_image: imageUrl ? `${imageUrl}?t=${Date.now()}` : null,
+  };
+
+  // ✅ Save to AuthContext
   setUserData(updated);
-  localStorage.setItem('user', JSON.stringify(updated));
 
-  // Update currentUser state too if needed
-  setCurrentUser(prev => ({
+  // ✅ Persist to localStorage
+  localStorage.setItem("user", JSON.stringify(updated));
+
+  // ✅ Update currentUser state for Sidebar or wherever it's used
+  setCurrentUser((prev) => ({
     ...prev,
     name: updated.full_name || updated.name || prev.name,
     avatar: updated.profile_image || prev.avatar,
     status: updated.status || prev.status,
   }));
 };
+
 
   const BASE_URL='http://127.0.0.1:8000';
   const storedUser = JSON.parse(localStorage.getItem('user'));
