@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 
 export default function ChatLayout() {
   const { logout } = useAuth();
-  const [selectedUser, setSelectedUser] = useState('John'); // Default or from URL/context
+  const [selectedUser, setSelectedUser] = useState(null); // Default or from URL/context
 
   // --- State for messages and groups (could be moved to context later) ---
   const [messages, setMessages] = useState({
@@ -127,18 +127,27 @@ export default function ChatLayout() {
         // Pass user data for Sidebar if it needs to make its own API calls or for filtering
         allUsersData={allUsersData} // Pass the fetched user data
       />
-      {selectedUser && (
-        <ChatWindow
-          user={selectedUserData}
-          messages={currentMessages}
-          onSend={handleSend}
-          members={currentMembersData}
-        />
+{/* By default when user is not selected, show welcome message */}
+
+      {selectedUser ? (
+          <ChatWindow
+            user={selectedUserData}
+            messages={currentMessages}
+            onSend={handleSend}
+            members={currentMembersData}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-[#1a1a1a] text-white text-center p-10">
+            <div>
+              <h1 className="text-2xl font-bold mb-4">Welcome to <span className='color text-green-600'>Linkup</span></h1>
+              <p className="text-lg">Connect with Friends and Family</p>
+            </div>
+          </div>
       )}
       <div className="absolute top-2 right-2">
         <button
           onClick={logout}
-          className="px-5 py-2 w-full max-w-[120px] bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 hover:scale-105 transition-all duration-200 shadow-md "
+          className="px-5 py-2 w-full max-w-[120px] bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 hover:scale-105 transition-all duration-200 shadow-md  "
         >
           Logout
         </button>
