@@ -1,147 +1,190 @@
-// ChatWindow.js
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-// Props:
-// - `user`: object – the current user's data { name: string, avatar: string }
-// - `messages`: array – all messages to display
-// - `onSend`: function – handles sending a message
-// - `members`: array – group or chat members data [{ name: string, avatar: string }, ...]
-export default function ChatWindow({ user, messages = [], onSend, members = [] }) {
-  // Ensure user is an object, provide fallback if it's still a string (good practice during transition)
-  const userObj = typeof user === 'string' ? { name: user, avatar: '/img/avatar.png' } : user;
-
+export default function ChatWindow({ user, members = [] }) {
   const [input, setInput] = useState('');
-  const [file, setFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const bottomRef = useRef(null);
+  const [chatMap, setChatMap] = useState({});
+  const [socket, setSocket] = useState(null);
+  const chatEndRef = useRef(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const API_BASE = "http://127.0.0.1:8000/users/api/chat";
+  const WS_BASE = "ws://127.0.0.1:8000/ws/chat";
+  const token = localStorage.getItem("accessToken");
+  const currentUsername = user?.username;
 
-  const handleFileChange = (e) => {
-    const selected = e.target.files[0];
-    if (!selected) return;
-
-    setFile(selected);
-    setPreviewUrl(URL.createObjectURL(selected));
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
-  const sendMessage = () => {
-    if (input.trim() === '' && !file) return;
-
-    const message = {
-      sender: 'You',
-      text: input.trim(),
-      file: file ? previewUrl : null,
-      fileType: file?.type || null,
+  // ⏬ Fetch chat history on user switch
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/history/${currentUsername}/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setChatMap(prev => ({
+            ...prev,
+            [currentUsername]: data,
+          }));
+          scrollToBottom();
+        }
+      } catch (err) {
+        console.error("Failed to fetch chat history", err);
+      }
     };
 
-    onSend(message);
+    if (currentUsername) {
+      fetchHistory();
+    }
+  }, [currentUsername]);
+
+  // 🔌 WebSocket connection
+  useEffect(() => {
+    if (!currentUsername || !token) return;
+
+    const ws = new WebSocket(`${WS_BASE}/${currentUsername}/?token=${token}`);
+
+    ws.onopen = () => console.log(`🟢 WebSocket connected with ${currentUsername}`);
+    ws.onclose = () => console.log(`🔴 WebSocket disconnected`);
+    ws.onerror = (err) => console.error("❌ WebSocket error:", err);
+
+    ws.onmessage = (event) => {
+      const { message, sender } = JSON.parse(event.data);
+
+      setChatMap(prev => {
+        const newMsg = {
+          content: message,
+          sender,
+          sent_at: new Date().toISOString(),
+        };
+        const existing = prev[currentUsername] || [];
+        return {
+          ...prev,
+          [currentUsername]: [...existing, newMsg],
+        };
+      });
+
+      scrollToBottom();
+    };
+
+    setSocket(ws);
+    return () => ws.close();
+  }, [currentUsername, token]);
+
+  // 📤 Send message via API and socket
+  const handleSend = async () => {
+    const content = input.trim();
+    if (!content || !currentUsername || !socket) return;
+
+    // Send via WebSocket (for real-time)
+    socket.send(JSON.stringify({ message: content }));
+
+    // Send via API (for DB storage)
+    try {
+      const res = await fetch(`${API_BASE}/send/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          receiver_username: currentUsername,
+          content,
+        })
+      });
+
+      if (!res.ok) throw new Error("Failed to send message");
+    } catch (err) {
+      console.error("API send failed:", err);
+    }
+
+    // Optimistic UI update
+    setChatMap(prev => {
+      const newMsg = {
+        content,
+        sender: 'You',
+        sent_at: new Date().toISOString(),
+      };
+      const existing = prev[currentUsername] || [];
+      return {
+        ...prev,
+        [currentUsername]: [...existing, newMsg],
+      };
+    });
+
     setInput('');
-    setFile(null);
-    setPreviewUrl('');
+    scrollToBottom();
   };
 
-  return (
-    <div className="flex flex-col flex-1 bg-[url('./img/whatsapp-bg.png')] bg-cover bg-center">
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
-      {/* 👤 Header: displays current user, profile picture, and members */}
-      <div className="bg-[#333333] shadow p-4 flex items-center justify-between border-b border-[#4CAF50]">
-        <div className="flex items-center"> {/* Added flex container for profile pic and text */}
-          {/* Use avatar from the user object */}
-          {userObj.avatar && (
-            <img
-              src={userObj.avatar}
-              alt={`${userObj.name}'s profile`}
-              className="w-10 h-10 rounded-full mr-3 object-cover"
-              onError={(e) => { e.target.src = 'src/img/avatar.png'; }} // Fallback
-            />
-          )}
-          <div className="flex flex-col">
-            {/* Use name from the user object */}
-            <h3 className="font-semibold text-lg text-white">{userObj.name}</h3>
-            {/* Display members if available (assuming they are objects now) */}
+  const currentChat = chatMap[currentUsername] || [];
+
+  return (
+    <div className="flex flex-col flex-1 bg-[#1a1a1a] text-white">
+      {/* Header */}
+      <div className="p-4 bg-[#333] flex justify-between items-center border-b border-green-500">
+        <div className="flex items-center space-x-4">
+          <img
+            src={user.avatar}
+            alt={user.name}
+            className="w-10 h-10 rounded-full"
+            onError={(e) => { e.target.src = "/img/avatar.png"; }}
+          />
+          <div>
+            <h3 className="text-lg font-semibold">{user.name}</h3>
             {members.length > 0 && (
-              <span className="text-sm text-gray-100">
-                {/* Join member names, or display avatars if desired */}
+              <p className="text-sm text-gray-400">
                 Members: {members.map(m => m.name).join(', ')}
-              </span>
+              </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* 💬 Messages Area */}
-      <div className="flex-1 overflow-y-auto flex flex-col-reverse p-4 space-y-4 space-y-reverse">
-        {/* Render messages in reverse order */}
-        {[...messages].reverse().map((msg, index) => (
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {currentChat.map((msg, idx) => (
           <div
-            key={index}
-            className={`p-3 rounded-xl shadow max-w-sm ${
-              msg.sender === 'You'
-                ? 'bg-[#4CAF50] text-white ml-auto'
-                : 'bg-[#332233] text-white mr-auto'
+            key={idx}
+            className={`max-w-xs px-4 py-2 rounded-xl shadow text-sm ${
+              msg.sender === user.username ? 'bg-gray-700 mr-auto' : 'bg-green-600 ml-auto'
             }`}
           >
-            <p><strong>{msg.sender}:</strong> {msg.text}</p>
-            {msg.file && msg.fileType?.startsWith('image') && (
-              <img src={msg.file} alt="media" className="mt-2 rounded-lg max-h-48" />
-            )}
-            {msg.file && msg.fileType?.startsWith('video') && (
-              <video src={msg.file} controls className="mt-2 rounded-lg max-h-48" />
-            )}
+            <p><strong>{msg.sender === user.username ? user.name : 'You'}:</strong> {msg.content}</p>
+            <p className="text-xs mt-1 text-gray-300 text-right">
+              {new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
         ))}
-        <div ref={bottomRef} />
+        <div ref={chatEndRef} />
       </div>
 
-      {/* 📝 Input Section */}
-      <div className="p-4 bg-[#333333] flex flex-col gap-2">
-
-        {/* 📸 Preview of selected media */}
-        {previewUrl && (
-          <div className="relative w-fit">
-            {file?.type?.startsWith('image') ? ( // Added optional chaining
-              <img src={previewUrl} alt="preview" className="max-h-40 rounded-lg" />
-            ) : (
-              <video src={previewUrl} className="max-h-40 rounded-lg" controls />
-            )}
-            <button
-              className="absolute top-1 right-1 bg-red-500 text-white rounded-full px-2 text-xs"
-              onClick={() => {
-                setFile(null);
-                setPreviewUrl('');
-              }}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* ✍️ Message Input + 📁 File Upload */}
-        <div className="flex items-center gap-2">
-          <input
-            type="file"
-            accept="image/*,video/*"
-            onChange={handleFileChange}
-            className="text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#4CAF50] file:text-white hover:file:bg-[#45a049] cursor-pointer"
-          />
-          <input
-            type="text"
-            placeholder="Type a message..."
-            className="flex-1 border border-[#4CAF50] rounded-xl px-4 py-2 outline-none text-white bg-[#1a1a1a] placeholder-gray-400"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <button
-            onClick={sendMessage}
-            className="bg-[#4CAF50] text-white px-4 py-2 rounded-xl hover:bg-[#45a049] transition"
-          >
-            Send
-          </button>
-        </div>
+      {/* Input Section */}
+      <div className="p-4 bg-[#2c2c2c] flex items-center gap-2 border-t border-green-500">
+        <input
+          type="text"
+          value={input}
+          placeholder="Type a message..."
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="flex-1 px-4 py-2 bg-black text-white rounded-lg border border-green-500 outline-none"
+        />
+        <button
+          onClick={handleSend}
+          className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg"
+        >
+          Send
+        </button>
       </div>
     </div>
   );
