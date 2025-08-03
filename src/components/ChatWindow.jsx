@@ -4,6 +4,7 @@ export default function ChatWindow({ user, members = [] }) {
   const [input, setInput] = useState('');
   const [chatMap, setChatMap] = useState({});
   const [socket, setSocket] = useState(null);
+  const [file, setFile] = useState(null);
   const chatEndRef = useRef(null);
 
   const API_BASE = "http://127.0.0.1:8000/users/api/chat";
@@ -17,7 +18,6 @@ export default function ChatWindow({ user, members = [] }) {
     }, 100);
   };
 
-  // ⏬ Fetch chat history on user switch
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -37,18 +37,15 @@ export default function ChatWindow({ user, members = [] }) {
       }
     };
 
-    if (currentUsername) {
-      fetchHistory();
-    }
+    if (currentUsername) fetchHistory();
   }, [currentUsername]);
 
-  // 🔌 WebSocket connection
   useEffect(() => {
     if (!currentUsername || !token) return;
 
     const ws = new WebSocket(`${WS_BASE}/${currentUsername}/?token=${token}`);
 
-    ws.onopen = () => console.log(`🟢 WebSocket connected with ${currentUsername}`);
+    ws.onopen = () => console.log(`🟢 WebSocket connected`);
     ws.onclose = () => console.log(`🔴 WebSocket disconnected`);
     ws.onerror = (err) => console.error("❌ WebSocket error:", err);
 
@@ -75,55 +72,61 @@ export default function ChatWindow({ user, members = [] }) {
     return () => ws.close();
   }, [currentUsername, token]);
 
-  // 📤 Send message via API and socket
   const handleSend = async () => {
-    const content = input.trim();
-    if (!content || !currentUsername || !socket) return;
+  if (!input.trim() && !file) return;
 
-    // Send via WebSocket (for real-time)
-    socket.send(JSON.stringify({ message: content }));
+  const formData = new FormData();
+  formData.append("receiver_username", currentUsername);
+  if (input.trim()) formData.append("content", input.trim());
+  if (file) formData.append("file", file);
 
-    // Send via API (for DB storage)
-    try {
-      const res = await fetch(`${API_BASE}/send/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          receiver_username: currentUsername,
-          content,
-        })
-      });
-
-      if (!res.ok) throw new Error("Failed to send message");
-    } catch (err) {
-      console.error("API send failed:", err);
-    }
-
-    // Optimistic UI update
-    setChatMap(prev => {
-      const newMsg = {
-        content,
-        sender: 'You',
-        sent_at: new Date().toISOString(),
-      };
-      const existing = prev[currentUsername] || [];
-      return {
-        ...prev,
-        [currentUsername]: [...existing, newMsg],
-      };
+  try {
+    const res = await fetch(`${API_BASE}/send/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
 
-    setInput('');
-    scrollToBottom();
-  };
+    if (!res.ok) throw new Error("Failed to send message");
+    const { data } = await res.json();
+
+    // 🔁 Only append if file is included, since WebSocket doesn't handle files
+    if (file) {
+      setChatMap(prev => {
+        const existing = prev[currentUsername] || [];
+        return {
+          ...prev,
+          [currentUsername]: [...existing, data],
+        };
+      });
+    }
+
+    // ✅ Only send text via WebSocket (no need to push to state)
+    if (input.trim() && socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ message: input.trim() }));
+    }
+
+  } catch (err) {
+    console.error("API send failed:", err);
+  }
+
+  setInput('');
+  setFile(null);
+  scrollToBottom();
+};
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const selected = e.target.files[0];
+    if (selected) {
+      setFile(selected);
     }
   };
 
@@ -161,6 +164,18 @@ export default function ChatWindow({ user, members = [] }) {
             }`}
           >
             <p><strong>{msg.sender === user.username ? user.name : 'You'}:</strong> {msg.content}</p>
+
+            {/* Render file (if exists) */}
+            {msg.file_url && (
+              msg.file_url.match(/\.(jpeg|jpg|png|gif)$/i) ? (
+                <img src={msg.file_url} alt="attachment" className="mt-2 max-w-full rounded-md" />
+              ) : msg.file_url.match(/\.(mp4|webm|ogg)$/i) ? (
+                <video controls src={msg.file_url} className="mt-2 max-w-full rounded-md" />
+              ) : (
+                <a href={msg.file_url} target="_blank" rel="noopener noreferrer" className="block mt-2 text-blue-400 underline">View Attachment</a>
+              )
+            )}
+
             <p className="text-xs mt-1 text-gray-300 text-right">
               {new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -171,6 +186,12 @@ export default function ChatWindow({ user, members = [] }) {
 
       {/* Input Section */}
       <div className="p-4 bg-[#2c2c2c] flex items-center gap-2 border-t border-green-500">
+        {/* 📎 File */}
+        <label className="cursor-pointer bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md">
+          📎
+          <input type="file" hidden onChange={handleFileChange} />
+        </label>
+
         <input
           type="text"
           value={input}
