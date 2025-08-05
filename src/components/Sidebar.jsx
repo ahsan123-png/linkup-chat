@@ -106,11 +106,9 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
     <>
       <div className="flex flex-col w-1/4 bg-[#1f1f1f] text-white p-4 h-screen relative">
         <div
-          className="bg-[#1F1F1F] p-3 flex justify-between items-center text-black rounded-lg mb-5 cursor-pointer hover:bg-[#2a2a2a] transition flex-shrink-0"
-          onClick={openProfilePopup}
-        >
+          className="bg-[#1F1F1F] p-3 flex justify-between items-center text-black rounded-lg mb-5">
           <div className="flex items-center space-x-3 text-white">
-            <div className="relative">
+            <div className="relative" onClick={openProfilePopup}>
               <img
                 src={profileImageUrl || currentUser.avatar}
                 alt={`${currentUser.name}'s Profile`}
@@ -119,6 +117,24 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
             </div>
             <span className="font-semibold">{currentUser.name}</span>
+          </div>
+          {/* ADd an notification icon button here */}
+          {/* ✅ Wrap icons in a flex container with smaller gap */}
+          <div className="flex items-center gap-4 text-gray-400">
+            <button
+              onClick={openProfilePopup}
+              className="rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
+              aria-label="Notifications"
+            >
+              <i className="fa-solid fa-bell"></i>
+            </button>
+            <button
+              onClick={openProfilePopup}
+              className="rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
+              aria-label="Profile"
+            >
+              <i className="fa-solid fa-user"></i>
+            </button>
           </div>
         </div>
 
