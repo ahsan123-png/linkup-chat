@@ -185,7 +185,7 @@ export default function ChatWindow({ user, members = [] }) {
       </div>
 
       {/* Input Section */}
-      <div className="p-4 bg-[#2c2c2c] flex items-center gap-2 border-t border-green-500">
+      <div className="p-4 bg-[#2c2c2c] flex items-center gap-2 border-t border-[#2C2C2C]">
         {/* 📎 File */}
         <label className="cursor-pointer bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md">
           📎

@@ -144,14 +144,14 @@ export default function ChatLayout() {
             </div>
           </div>
       )}
-      <div className="absolute top-2 right-2 my-2 ">
+      {/* <div className="absolute top-2 right-2 my-2 ">
         <button
           onClick={logout}
           className="px-5 py-2 w-full max-w-[120px] bg-red-600 text-white text-sm font-semibold rounded-md hover:bg-red-700 hover:scale-105 transition-all duration-200 shadow-md  "
         >
           Logout
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }
