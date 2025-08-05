@@ -151,6 +151,23 @@ export default function ChatWindow({ user, members = [] }) {
               </p>
             )}
           </div>
+          {/* Right: Call Icons */}
+          <div className="flex justify-end gap-2 text-l text-white">
+            <button
+              className="hover:text-green-400"
+              title="Audio Call"
+              onClick={() => alert("Audio Call - coming soon")}
+            >
+              <i className="fas fa-phone" />
+            </button>
+            <button
+              className="hover:text-green-400"
+              title="Video Call"
+              onClick={() => alert("Video Call - coming soon")}
+            >
+              <i className="fas fa-video" />
+            </button>
+          </div>
         </div>
       </div>
 
