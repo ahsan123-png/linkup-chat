@@ -11,6 +11,8 @@ export default function ChatWindow({ user, members = [] }) {
   const WS_BASE = "ws://127.0.0.1:8000/ws/chat";
   const token = localStorage.getItem("accessToken");
   const currentUsername = user?.username;
+  const isAIChat = user?.name === 'Linko';
+  console.log("Current User:", isAIChat);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -37,11 +39,11 @@ export default function ChatWindow({ user, members = [] }) {
       }
     };
 
-    if (currentUsername) fetchHistory();
-  }, [currentUsername]);
+    if (currentUsername && !isAIChat) fetchHistory();
+  }, [currentUsername, isAIChat]);
 
   useEffect(() => {
-    if (!currentUsername || !token) return;
+    if (!currentUsername || !token || isAIChat) return;
 
     const ws = new WebSocket(`${WS_BASE}/${currentUsername}/?token=${token}`);
 
@@ -51,13 +53,13 @@ export default function ChatWindow({ user, members = [] }) {
 
     ws.onmessage = (event) => {
       const { message, sender } = JSON.parse(event.data);
+      const newMsg = {
+        content: message,
+        sender,
+        sent_at: new Date().toISOString(),
+      };
 
       setChatMap(prev => {
-        const newMsg = {
-          content: message,
-          sender,
-          sent_at: new Date().toISOString(),
-        };
         const existing = prev[currentUsername] || [];
         return {
           ...prev,
@@ -70,51 +72,90 @@ export default function ChatWindow({ user, members = [] }) {
 
     setSocket(ws);
     return () => ws.close();
-  }, [currentUsername, token]);
+  }, [currentUsername, token, isAIChat]);
 
   const handleSend = async () => {
-  if (!input.trim() && !file) return;
+    if (!input.trim() && !file) return;
 
-  const formData = new FormData();
-  formData.append("receiver_username", currentUsername);
-  if (input.trim()) formData.append("content", input.trim());
-  if (file) formData.append("file", file);
+    const message = {
+      content: input.trim(),
+      sender: 'You',
+      sent_at: new Date().toISOString(),
+    };
 
-  try {
-    const res = await fetch(`${API_BASE}/send/`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error("Failed to send message");
-    const { data } = await res.json();
-
-    // 🔁 Only append if file is included, since WebSocket doesn't handle files
-    if (file) {
+    // ✅ Handle AI assistant separately
+    if (isAIChat) {
       setChatMap(prev => {
-        const existing = prev[currentUsername] || [];
+        const existing = prev["Linko"] || [];
         return {
           ...prev,
-          [currentUsername]: [...existing, data],
+          Linko: [...existing, message],
         };
       });
+
+      setInput('');
+      scrollToBottom();
+
+      // Simulate AI reply
+      setTimeout(() => {
+        const aiResponse = {
+          content: "Hi, I'm Linko! How may I assist you?",
+          sender: "Linko",
+          sent_at: new Date().toISOString(),
+        };
+
+        setChatMap(prev => {
+          const existing = prev["Linko"] || [];
+          return {
+            ...prev,
+            Linko: [...existing, aiResponse],
+          };
+        });
+
+        scrollToBottom();
+      }, 1000);
+
+      return;
     }
 
-    // ✅ Only send text via WebSocket (no need to push to state)
-    if (input.trim() && socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ message: input.trim() }));
+    // ✅ For normal user chat
+    const formData = new FormData();
+    formData.append("receiver_username", currentUsername);
+    if (input.trim()) formData.append("content", input.trim());
+    if (file) formData.append("file", file);
+
+    try {
+      const res = await fetch(`${API_BASE}/send/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to send message");
+      const { data } = await res.json();
+
+      if (file) {
+        setChatMap(prev => {
+          const existing = prev[currentUsername] || [];
+          return {
+            ...prev,
+            [currentUsername]: [...existing, data],
+          };
+        });
+      }
+
+      if (input.trim() && socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ message: input.trim() }));
+      }
+
+    } catch (err) {
+      console.error("API send failed:", err);
     }
 
-  } catch (err) {
-    console.error("API send failed:", err);
-  }
-
-  setInput('');
-  setFile(null);
-  scrollToBottom();
-};
-
+    setInput('');
+    setFile(null);
+    scrollToBottom();
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -151,7 +192,10 @@ export default function ChatWindow({ user, members = [] }) {
               </p>
             )}
           </div>
-          {/* Right: Call Icons */}
+        </div>
+
+        {/* Right: Call Icons */}
+        {!isAIChat && (
           <div className="flex justify-end gap-2 text-l text-white">
             <button
               className="hover:text-green-400"
@@ -168,21 +212,22 @@ export default function ChatWindow({ user, members = [] }) {
               <i className="fas fa-video" />
             </button>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Chat Messages */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {currentChat.map((msg, idx) => (
           <div
             key={idx}
             className={`max-w-xs px-4 py-2 rounded-xl shadow text-sm ${
-              msg.sender === user.username ? 'bg-gray-700 mr-auto' : 'bg-green-600 ml-auto'
+              msg.sender === user.username || msg.sender === "Linko"
+                ? 'bg-gray-700 mr-auto'
+                : 'bg-green-600 ml-auto'
             }`}
           >
             <p><strong>{msg.sender === user.username ? user.name : 'You'}:</strong> {msg.content}</p>
 
-            {/* Render file (if exists) */}
             {msg.file_url && (
               msg.file_url.match(/\.(jpeg|jpg|png|gif)$/i) ? (
                 <img src={msg.file_url} alt="attachment" className="mt-2 max-w-full rounded-md" />
@@ -201,9 +246,8 @@ export default function ChatWindow({ user, members = [] }) {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Section */}
+      {/* Input */}
       <div className="p-4 bg-[#2c2c2c] flex items-center gap-2 border-t border-[#2C2C2C]">
-        {/* 📎 File */}
         <label className="cursor-pointer bg-green-600 hover:bg-green-700 px-3 py-2 rounded-md">
           📎
           <input type="file" hidden onChange={handleFileChange} />
@@ -217,6 +261,7 @@ export default function ChatWindow({ user, members = [] }) {
           onKeyDown={handleKeyDown}
           className="flex-1 px-4 py-2 bg-black text-white rounded-lg border border-green-500 outline-none"
         />
+
         <button
           onClick={handleSend}
           className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg"
