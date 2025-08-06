@@ -141,7 +141,7 @@ export default function ChatWindow({ user, members = [] }) {
             src={user.avatar}
             alt={user.name}
             className="w-10 h-10 rounded-full"
-            onError={(e) => { e.target.src = "/img/avatar.png"; }}
+            onError={(e) => { e.target.src = "src/img/ai.png"; }}
           />
           <div>
             <h3 className="text-lg font-semibold">{user.name}</h3>

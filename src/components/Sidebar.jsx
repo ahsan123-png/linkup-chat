@@ -1,3 +1,4 @@
+// Sidebar.jsx
 import React, { useState, useEffect } from 'react';
 import UserProfilePopup from './UserProfilePopup';
 import CreateGroupPopup from './CreateGroupPopup';
@@ -31,6 +32,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
 
   const BASE_URL = 'http://127.0.0.1:8000';
   const storedUser = JSON.parse(localStorage.getItem('user'));
+
   const profileImageUrl = storedUser?.profile_image
     ? storedUser.profile_image.includes('http')
       ? storedUser.profile_image
@@ -159,7 +161,33 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
           </div>
         </div>
 
-        <div className="mt-4 flex-1 min-h-0 overflow-y-auto sidebar-chat-list pb-20">
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto sidebar-chat-list">
+          {/* Static AI Assistant "Linko" */}
+          <div
+            className={`flex items-center p-3 border-b border-gray-700 cursor-pointer bg-[#2a2a2a] hover:bg-[#3a3a3a]`}
+            onClick={() => onSelectUser("Linko")}
+          >
+            <div className="relative mr-3">
+              <img
+                src="src/img/ai.png"
+                alt="Linko Bot"
+                className="w-12 h-12 rounded-full"
+              />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2a2a2a]"></span>
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-white">Linko</span>
+                <span className="text-xs text-gray-400">Now</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-400 truncate">Hi, I am Linko. How may I help you!</p>
+                <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">1</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Dynamic users list */}
           {loadingUsers && <div className="p-3 text-gray-400">Loading users...</div>}
           {errorUsers && <div className="p-3 text-red-400">Error loading users: {errorUsers}</div>}
 
@@ -167,9 +195,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
             <div
               key={user.id}
               className={`flex items-center p-3 border-b border-gray-700 cursor-pointer ${
-                selectedUser === user.name
-                  ? "bg-[#4CAF50] bg-opacity-20"
-                  : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
+                selectedUser === user.name ? "bg-[#4CAF50] bg-opacity-20" : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
               }`}
               onClick={() => onSelectUser(user.name)}
             >
