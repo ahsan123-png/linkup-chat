@@ -1,9 +1,11 @@
+// NotificationPopup.jsx
 import React, { useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
 
 export default function NotificationPopup({ notifications, onClose }) {
   const popupRef = useRef();
 
-  // Close popup on outside click
+  // Close on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -29,7 +31,7 @@ export default function NotificationPopup({ notifications, onClose }) {
             >
               <p>{notification.message}</p>
               <span className="text-xs text-gray-400">
-                {new Date(notification.timestamp).toLocaleString()}
+                {dayjs(notification.timestamp).format('MMM D, YYYY h:mm A')}
               </span>
             </div>
           ))

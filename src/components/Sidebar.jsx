@@ -65,22 +65,24 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
 // Dummy and Mock data (replace with backend in production)
 
   const notifications = [
-  { message: "New message from John" },
-  { message: "Task deadline updated" },
-  { message: "Server restarted" },
-  { message: "You have a meeting" },
-  { message: "New project assigned" },
-  { message: "More than 5 gets scrollable" }
+  { message: "New message from John", timestamp: new Date().toISOString() },
+  { message: "Task deadline updated", timestamp: new Date().toISOString() },
+  { message: "Server restarted", timestamp: new Date().toISOString() },
+  { message: "You have a meeting", timestamp: new Date().toISOString() },
+  { message: "New project assigned", timestamp: new Date().toISOString() },
+  { message: "More than 5 gets scrollable", timestamp: new Date().toISOString() }
 ];
 
+
   const friendRequests = [
-  { name: "Alice" },
-  { name: "Bob" },
-  { name: "Charlie" },
-  { name: "Diana" },
-  { name: "Eve" },
-  { name: "Frank" }
+  { name: "Alice Smith alkosi", timestamp: new Date().toISOString() },
+  { name: "Bob", timestamp: new Date().toISOString() },
+  { name: "Charlie", timestamp: new Date().toISOString() },
+  { name: "Diana", timestamp: new Date().toISOString() },
+  { name: "Eve", timestamp: new Date().toISOString() },
+  { name: "Frank", timestamp: new Date().toISOString() }
 ];
+
 
   const [dynamicUsers, setDynamicUsers] = useState(allUsersData);
   const [loadingUsers, setLoadingUsers] = useState(false);

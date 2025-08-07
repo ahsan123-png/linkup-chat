@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
 
-export default function FriendRequestPopup({ requests, onClose, onAccept, onReject }) {
+export default function FriendRequestPopup({ requests, onClose, onConfirm, onReject }) {
   const popupRef = useRef();
 
-  // Close popup on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -17,40 +17,44 @@ export default function FriendRequestPopup({ requests, onClose, onAccept, onReje
   return (
     <div
       ref={popupRef}
-      className="absolute right-0 mt-2 w-80 bg-[#2b2b2b] rounded-md shadow-lg p-3 z-50 border border-gray-600"
+      className="absolute right-0 mt-2 w-96 bg-[#2b2b2b] rounded-md shadow-lg p-3 z-50 border border-gray-600"
     >
       <h3 className="text-white text-lg font-semibold mb-2">Friend Requests</h3>
-      <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+      <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 pr-2">
         {requests.length > 0 ? (
           requests.map((req, idx) => (
             <div
               key={idx}
-              className="p-2 rounded hover:bg-[#3b3b3b] text-white cursor-pointer mb-1"
+              className="p-2 rounded hover:bg-[#3b3b3b] text-white mb-2"
             >
               <div className="flex justify-between items-center">
-                <span>{req.name}</span>
-                <div className="space-x-1">
+                <div>
+                  <p>{req.name}</p>
+                  <span className="text-xs text-gray-400">
+                    {req.timestamp
+                      ? dayjs(req.timestamp).format('MMM D, YYYY h:mm A')
+                      : 'Unknown time'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => onAccept(req.id)}
-                    className="text-green-400 hover:text-green-300"
+                    onClick={() => onConfirm(req)}
+                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
                   >
-                    Accept
+                    Confirm
                   </button>
                   <button
-                    onClick={() => onReject(req.id)}
-                    className="text-red-400 hover:text-red-300"
+                    onClick={() => onReject(req)}
+                    className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
                   >
                     Reject
                   </button>
                 </div>
               </div>
-              <span className="text-xs text-gray-400">
-                {new Date(req.timestamp).toLocaleString()}
-              </span>
             </div>
           ))
         ) : (
-          <p className="text-gray-400">No friend requests</p>
+          <p className="text-gray-400">No new friend requests</p>
         )}
       </div>
     </div>
