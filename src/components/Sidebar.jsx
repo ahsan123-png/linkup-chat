@@ -2,6 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import UserProfilePopup from './UserProfilePopup';
 import CreateGroupPopup from './CreateGroupPopup';
+// Notification and FriendRequestPopups
+
+import NotificationPopup from './NotificationPopup';
+import FriendRequestPopup from './FriendRequestPopup';
+// Authentications components and state 
+
 import { useAuth } from './AuthContext';
 
 export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
@@ -41,6 +47,41 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
 
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const [isCreateGroupPopupOpen, setIsCreateGroupPopupOpen] = useState(false);
+
+  // Popup visibility states
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+
+  // Toggle button for notifications and friend requests
+   const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    setShowFriendRequests(false);
+  };
+
+  const toggleFriendRequests = () => {
+    setShowFriendRequests(!showFriendRequests);
+    setShowNotifications(false);
+  };  
+// Dummy and Mock data (replace with backend in production)
+
+  const notifications = [
+  { message: "New message from John" },
+  { message: "Task deadline updated" },
+  { message: "Server restarted" },
+  { message: "You have a meeting" },
+  { message: "New project assigned" },
+  { message: "More than 5 gets scrollable" }
+];
+
+  const friendRequests = [
+  { name: "Alice" },
+  { name: "Bob" },
+  { name: "Charlie" },
+  { name: "Diana" },
+  { name: "Eve" },
+  { name: "Frank" }
+];
+
   const [dynamicUsers, setDynamicUsers] = useState(allUsersData);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState(null);
@@ -122,23 +163,41 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
           </div>
           {/* ADd an notification icon button here */}
           {/* ✅ Wrap icons in a flex container with smaller gap */}
-          <div className="flex items-center gap-4 text-gray-400">
-            <button
-              onClick={openProfilePopup}
-              className="rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
-              aria-label="Notifications"
-            >
-              <i className="fa-solid fa-bell"></i>
-            </button>
-            <button
-              onClick={openProfilePopup}
-              className="rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
-              aria-label="Profile"
-            >
-              <i className="fa-solid fa-user"></i>
-            </button>
+          <div className="flex items-center gap-3 text-gray-400">
+            {/* 🔔 Notification Button */}
+            <div className="relative">
+              <button
+                onClick={toggleNotifications}
+                className="relative p-2 rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
+              >
+                <i className="fa-solid fa-bell"></i>
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              </button>
+              {showNotifications && (
+                <NotificationPopup notifications={notifications} />
+              )}
+            </div>
+
+            {/* 👤 Friend Requests Button */}
+            <div className="relative">
+              <button
+                onClick={toggleFriendRequests}
+                className="relative p-2 rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
+              >
+                <i className="fa-solid fa-user-plus"></i>
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                  {friendRequests.length}
+                </span>
+              </button>
+              {showFriendRequests && (
+                <FriendRequestPopup requests={friendRequests} />
+              )}
+            </div>
           </div>
         </div>
+
 
         <div className="p-4 bg-[#1f1f1f] flex-shrink-0">
           <div className="relative mb-4">
