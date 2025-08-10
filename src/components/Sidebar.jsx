@@ -2,17 +2,27 @@
 import React, { useState, useEffect } from 'react';
 import UserProfilePopup from './UserProfilePopup';
 import CreateGroupPopup from './CreateGroupPopup';
-// Notification and FriendRequestPopups
-
 import NotificationPopup from './NotificationPopup';
 import FriendRequestPopup from './FriendRequestPopup';
-// Authentications components and state 
-
 import { useAuth } from './AuthContext';
 
 export default function Sidebar({ users, selectedUser, onSelectUser, allUsersData = [] }) {
   const { userData, setUserData, logout } = useAuth();
 
+  // ===== State for dynamic user list =====
+  const [dynamicUsers, setDynamicUsers] = useState(allUsersData);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [errorUsers, setErrorUsers] = useState(null);
+
+  // ===== Search input state =====
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Update user list from props
+  useEffect(() => {
+    setDynamicUsers(allUsersData);
+  }, [allUsersData]);
+
+  // ===== Handle profile updates =====
   const handleProfileUpdate = (updatedUser) => {
     const baseURL = "http://127.0.0.1:8000";
     const imageUrl = updatedUser.profile_image
@@ -45,52 +55,31 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
       : `${BASE_URL}${storedUser.profile_image}`
     : 'https://via.placeholder.com/150';
 
+  // ===== Popup states =====
   const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
   const [isCreateGroupPopupOpen, setIsCreateGroupPopupOpen] = useState(false);
-
-  // Popup visibility states
   const [showNotifications, setShowNotifications] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
 
-  // Toggle button for notifications and friend requests
-   const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    setShowFriendRequests(false);
-  };
-
-  const toggleFriendRequests = () => {
-    setShowFriendRequests(!showFriendRequests);
-    setShowNotifications(false);
-  };  
-// Dummy and Mock data (replace with backend in production)
-
+  // ===== Notifications & Requests dummy data =====
   const notifications = [
-  { message: "New message from John", timestamp: new Date().toISOString() },
-  { message: "Task deadline updated", timestamp: new Date().toISOString() },
-  { message: "Server restarted", timestamp: new Date().toISOString() },
-  { message: "You have a meeting", timestamp: new Date().toISOString() },
-  { message: "New project assigned", timestamp: new Date().toISOString() },
-  { message: "More than 5 gets scrollable", timestamp: new Date().toISOString() }
-];
+    { message: "New message from John", timestamp: new Date().toISOString() },
+    { message: "Task deadline updated", timestamp: new Date().toISOString() },
+    { message: "Server restarted", timestamp: new Date().toISOString() },
+    { message: "You have a meeting", timestamp: new Date().toISOString() },
+    { message: "New project assigned", timestamp: new Date().toISOString() },
+    { message: "More than 5 gets scrollable", timestamp: new Date().toISOString() }
+  ];
 
 
   const friendRequests = [
-  { name: "Alice Smith alkosi", timestamp: new Date().toISOString() },
-  { name: "Bob", timestamp: new Date().toISOString() },
-  { name: "Charlie", timestamp: new Date().toISOString() },
-  { name: "Diana", timestamp: new Date().toISOString() },
-  { name: "Eve", timestamp: new Date().toISOString() },
-  { name: "Frank", timestamp: new Date().toISOString() }
-];
-
-
-  const [dynamicUsers, setDynamicUsers] = useState(allUsersData);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [errorUsers, setErrorUsers] = useState(null);
-
-  useEffect(() => {
-    setDynamicUsers(allUsersData);
-  }, [allUsersData]);
+    { name: "Alice Smith alkosi", timestamp: new Date().toISOString() },
+    { name: "Bob", timestamp: new Date().toISOString() },
+    { name: "Charlie", timestamp: new Date().toISOString() },
+    { name: "Diana", timestamp: new Date().toISOString() },
+    { name: "Eve", timestamp: new Date().toISOString() },
+    { name: "Frank", timestamp: new Date().toISOString() }
+  ];
 
   const [currentUser, setCurrentUser] = useState({
     name: 'Loading User...',
@@ -98,6 +87,7 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
     avatar: 'src/img/avatar.png',
   });
 
+  // ===== Set current user from localStorage =====
   useEffect(() => {
     const storedUserData = JSON.parse(localStorage.getItem('user'));
     const authUserName = storedUserData?.full_name || storedUserData?.username;
@@ -111,49 +101,74 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
           avatar: foundCurrentUser.avatar,
         });
       } else {
-        console.warn("Current user not found in fetched user list.");
-        setCurrentUser({
-          name: authUserName,
-          status: 'Online',
-        });
+        setCurrentUser({ name: authUserName, status: 'Online' });
       }
     } else if (authUserName) {
       setCurrentUser(prev => ({ ...prev, name: authUserName }));
     }
   }, [dynamicUsers]);
 
-  const openProfilePopup = () => setIsProfilePopupOpen(true);
-  const closeProfilePopup = () => setIsProfilePopupOpen(false);
+  // ===== Search API Call =====
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
 
-  const handleSaveProfile = (updatedData) => {
-    console.log('Saving profile data:', updatedData);
-    setCurrentUser(prev => ({ ...prev, ...updatedData }));
-    alert('Profile updated successfully! (This is a demo)');
+    if (query.trim() === "") {
+      // Reset to full list when cleared
+      setDynamicUsers(allUsersData);
+      return;
+    }
+
+    try {
+      setLoadingUsers(true);
+      // Get token from localStorage or AuthContext
+      const token = localStorage.getItem("accessToken"); 
+    // Or: const token = userData?.token;  // if you store it in AuthContext
+
+    const response = await fetch(
+      `http://127.0.0.1:8000/users/search_user?q=${encodeURIComponent(query)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "", // add token
+        },
+      }
+    );
+      // if (!response.ok) throw new Error("Failed to search users");
+      const data = await response.json();
+      setDynamicUsers(data);
+    } catch (error) {
+      setErrorUsers(error.message);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
-  const handleGoToSettings = () => {
-    console.log('Navigating to settings...');
-    closeProfilePopup();
-    alert('Navigate to Settings action triggered! (This is a demo)');
+  // ===== Clear search =====
+  const clearSearch = () => {
+    setSearchQuery("");
+    setDynamicUsers(allUsersData);
   };
 
-  const openCreateGroupPopup = () => setIsCreateGroupPopupOpen(true);
-  const closeCreateGroupPopup = () => setIsCreateGroupPopupOpen(false);
+  // ===== Toggle popups =====
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    setShowFriendRequests(false);
+  };
 
-  const handleCreateGroup = (groupData) => {
-    console.log('Creating group with data:', groupData);
-    const selectedUserData = dynamicUsers.filter(u => groupData.members.includes(u.name));
-    console.log('Selected user data for group:', selectedUserData);
-    alert(`Group '${groupData.name}' creation requested! (Demo)\nMembers: ${groupData.members.join(', ')}`);
+  const toggleFriendRequests = () => {
+    setShowFriendRequests(!showFriendRequests);
+    setShowNotifications(false);
   };
 
   return (
     <>
       <div className="flex flex-col w-1/4 bg-[#1f1f1f] text-white p-4 h-screen relative">
-        <div
-          className="bg-[#1F1F1F] p-3 flex justify-between items-center text-black rounded-lg mb-5">
+        
+        {/* ===== Top Profile Bar ===== */}
+        <div className="bg-[#1F1F1F] p-3 flex justify-between items-center rounded-lg mb-5">
           <div className="flex items-center space-x-3 text-white">
-            <div className="relative" onClick={openProfilePopup}>
+            <div className="relative" onClick={() => setIsProfilePopupOpen(true)}>
               <img
                 src={profileImageUrl || currentUser.avatar}
                 alt={`${currentUser.name}'s Profile`}
@@ -163,159 +178,142 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
             </div>
             <span className="font-semibold">{currentUser.name}</span>
           </div>
-          {/* ADd an notification icon button here */}
-          {/* ✅ Wrap icons in a flex container with smaller gap */}
-          <div className="flex items-center gap-3 text-gray-400">
-            {/* 🔔 Notification Button */}
+
+          {/* Notifications & Friend Requests */}
+          <div className="flex items-center gap-3 text-gray-100">
             <div className="relative">
-              <button
-                onClick={toggleNotifications}
-                className="relative p-2 rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
-              >
+              <button onClick={toggleNotifications} className="relative p-2 rounded-full hover:bg-[#2a2a2a]">
                 <i className="fa-solid fa-bell"></i>
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 bg-red-500 text-xs w-4 h-4 rounded-full flex items-center justify-center">
                   {notifications.length}
                 </span>
               </button>
-              {showNotifications && (
-                <NotificationPopup notifications={notifications} />
-              )}
+              {showNotifications && <NotificationPopup notifications={notifications} />}
             </div>
 
-            {/* 👤 Friend Requests Button */}
             <div className="relative">
-              <button
-                onClick={toggleFriendRequests}
-                className="relative p-2 rounded-full hover:bg-[#2a2a2a] hover:text-white transition"
-              >
+              <button onClick={toggleFriendRequests} className="relative p-2 rounded-full hover:bg-[#2a2a2a]">
                 <i className="fa-solid fa-user-plus"></i>
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute top-0 right-0 bg-red-500 text-xs w-4 h-4 rounded-full flex items-center justify-center">
                   {friendRequests.length}
                 </span>
               </button>
-              {showFriendRequests && (
-                <FriendRequestPopup requests={friendRequests} />
-              )}
+              {showFriendRequests && <FriendRequestPopup requests={friendRequests} />}
             </div>
           </div>
         </div>
 
-
+        {/* ===== Search Bar ===== */}
         <div className="p-4 bg-[#1f1f1f] flex-shrink-0">
           <div className="relative mb-4">
             <input
               type="text"
               placeholder="Search or start new chat"
-              className="w-full py-2 pl-10 pr-4 bg-[#1f1f1f] text-white placeholder-gray-400 border-b-2 border-green-500 focus:bg-black focus:outline-none transition-colors duration-200"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full py-2 pl-10 pr-8 bg-[#1f1f1f] text-white placeholder-gray-400 border-b-2 border-green-500 focus:bg-black focus:outline-none"
             />
-            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"></i>
+            {/* Search Icon */}
+            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            {/* Clear (✕) Icon */}
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
           </div>
+
+          {/* Chats Header */}
           <div className="flex justify-between items-center mt-4">
             <h2 className="text-xl font-bold">Chats</h2>
             <button
-              onClick={openCreateGroupPopup}
-              className="p-2 rounded-full hover:bg-[#2a2a2a] text-gray-400 hover:text-white transition"
-              aria-label="Create Group"
+              onClick={() => setIsCreateGroupPopupOpen(true)}
+              className="p-2 rounded-full hover:bg-[#2a2a2a] text-gray-400 hover:text-white"
             >
               <i className="fas fa-users"></i>
             </button>
           </div>
         </div>
 
+        {/* ===== Chat List ===== */}
         <div className="mt-4 flex-1 min-h-0 overflow-y-auto sidebar-chat-list">
-          {/* Static AI Assistant "Linko" */}
-          <div
-            className={`flex items-center p-3 border-b border-gray-700 cursor-pointer bg-[#2a2a2a] hover:bg-[#3a3a3a]`}
-            onClick={() => onSelectUser("Linko")}
-          >
-            <div className="relative mr-3">
-              <img
-                src="src/img/ai.png"
-                alt="Linko Bot"
-                className="w-12 h-12 rounded-full"
-              />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2a2a2a]"></span>
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-white">Linko</span>
-                <span className="text-xs text-gray-400">Now</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-400 truncate">Hi, I am Linko. How may I help you!</p>
-                <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">1</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Dynamic users list */}
-          {loadingUsers && <div className="p-3 text-gray-400">Loading users...</div>}
-          {errorUsers && <div className="p-3 text-red-400">Error loading users: {errorUsers}</div>}
-
-          {dynamicUsers?.map((user) => (
+          <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+            
+            {/* Static AI Bot */}
             <div
-              key={user.id}
-              className={`flex items-center p-3 border-b border-gray-700 cursor-pointer ${
-                selectedUser === user.name ? "bg-[#4CAF50] bg-opacity-20" : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
-              }`}
-              onClick={() => onSelectUser(user.name)}
+              className="flex items-center p-3 border-b border-gray-700 cursor-pointer bg-[#2a2a2a] hover:bg-[#3a3a3a]"
+              onClick={() => onSelectUser("Linko")}
             >
               <div className="relative mr-3">
-                <img
-                  src={user.avatar}
-                  alt={`${user.name}'s avatar`}
-                  className="w-12 h-12 rounded-full"
-                />
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#2a2a2a]"></span>
+                <img src="src/img/ai.png" alt="Linko Bot" className="w-12 h-12 rounded-full" />
+                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
               </div>
-
               <div className="flex-1">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-white">{user.name}</span>
-                  <span className="text-xs text-gray-400">10:30 AM</span>
+                  <span className="font-semibold">Linko</span>
+                  <span className="text-xs text-gray-400">Now</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-gray-400 truncate">{user.status}</p>
-                  <span className="bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    3
-                  </span>
-                </div>
+                <p className="text-sm text-gray-400 truncate">Hi, I am Linko. How may I help you!</p>
               </div>
             </div>
-          ))}
+
+            {/* Loading / Error / No Results */}
+            {loadingUsers && <div className="p-3 text-gray-400">Loading users...</div>}
+            {errorUsers && <div className="p-3 text-red-400">{errorUsers}</div>}
+            {!loadingUsers && dynamicUsers?.length === 0 && (
+              <div className="p-3 text-gray-400">No users available</div>
+            )}
+
+            {/* Dynamic Users */}
+            {dynamicUsers?.map((user) => (
+              <div
+                key={user.id}
+                className={`flex items-center p-3 border-b border-gray-700 cursor-pointer ${
+                  selectedUser === user.name ? "bg-[#4CAF50] bg-opacity-20" : "bg-[#2a2a2a] hover:bg-[#3a3a3a]"
+                }`}
+                onClick={() => onSelectUser(user.name)}
+              >
+                <div className="relative mr-3">
+                  <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full" />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">{user.name}</span>
+                    <span className="text-xs text-gray-400">10:30 AM</span>
+                  </div>
+                  <p className="text-sm text-gray-400 truncate">{user.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Sticky Footer */}
-        <div className="absolute bottom-0 left-0 w-full bg-[#1f1f1f] border-t border-gray-700 px-4 py-3 flex justify-between items-center text-gray-400 text-sm z-10">
+        {/* ===== Footer ===== */}
+        <div className="absolute bottom-0 left-0 w-full bg-[#1f1f1f] border-t border-gray-700 px-4 py-3 flex justify-between items-center text-gray-400 text-sm">
           <span>v1.0.0</span>
           <div className="flex space-x-4">
-            <i
-              className="fas fa-cog text-lg cursor-pointer transform transition-transform duration-300 hover:scale-110"
-              title="Settings"
-              onClick={handleGoToSettings}
-            ></i>
-            <i
-              className="fas fa-sign-out-alt text-lg cursor-pointer transform transition-transform duration-300 hover:scale-110"
-              title="Logout"
-              onClick={logout}
-            ></i>
+            <i className="fas fa-cog cursor-pointer hover:scale-110" onClick={() => alert("Settings")}></i>
+            <i className="fas fa-sign-out-alt cursor-pointer hover:scale-110" onClick={logout}></i>
           </div>
         </div>
       </div>
 
+      {/* Popups */}
       <UserProfilePopup
         isOpen={isProfilePopupOpen}
         onClose={() => setIsProfilePopupOpen(false)}
         currentUser={userData}
         onSave={handleProfileUpdate}
-        onGoToSettings={() => console.log("Go to settings clicked")}
       />
-
       <CreateGroupPopup
         isOpen={isCreateGroupPopupOpen}
-        onClose={closeCreateGroupPopup}
+        onClose={() => setIsCreateGroupPopupOpen(false)}
         availableUsers={dynamicUsers}
-        onCreateGroup={handleCreateGroup}
+        onCreateGroup={(group) => console.log(group)}
       />
     </>
   );
