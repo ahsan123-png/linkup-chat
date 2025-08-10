@@ -136,7 +136,23 @@ export default function Sidebar({ users, selectedUser, onSelectUser, allUsersDat
     );
       // if (!response.ok) throw new Error("Failed to search users");
       const data = await response.json();
-      setDynamicUsers(data);
+
+    // Map API data into UI-friendly format
+      const mappedUsers = data.map(user => {
+        const imageUrl = user.profile_image
+          ? (user.profile_image.startsWith("http")
+              ? user.profile_image
+              : `${BASE_URL}${user.profile_image}`)
+          : "https://via.placeholder.com/150";
+
+        return {
+          id: user.id,
+          name: user.full_name || `${user.first_name} ${user.last_name}`,
+          status: user.status || "Available",
+          avatar: imageUrl,
+        };
+      });
+      setDynamicUsers(mappedUsers);
     } catch (error) {
       setErrorUsers(error.message);
     } finally {
