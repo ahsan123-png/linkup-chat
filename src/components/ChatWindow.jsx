@@ -5,6 +5,7 @@ export default function ChatWindow({ user, members = [] }) {
   const [chatMap, setChatMap] = useState({});
   const [socket, setSocket] = useState(null);
   const [file, setFile] = useState(null);
+  const [userState, setUserState] = useState(user); // NEW: Local state to track user changes
   const chatEndRef = useRef(null);
   const BASE_URL = "http://127.0.0.1:8000"
   const API_BASE = "http://127.0.0.1:8000/users/api/chat";
@@ -14,6 +15,11 @@ export default function ChatWindow({ user, members = [] }) {
   const isAIChat = user?.name === 'Linko';
   const [currentRequestId, setCurrentRequestId] = useState(null);
   console.log("Current User:", isAIChat);
+
+  // NEW: Update userState when user prop changes
+  useEffect(() => {
+    setUserState(user);
+  }, [user]);
 
   // ==================== FRIEND REQUEST LOGIC ====================
   const sendFriendRequest = async (userId) => {
@@ -32,7 +38,6 @@ export default function ChatWindow({ user, members = [] }) {
       if (response.ok) {
         const data = await response.json();
         console.log("Friend request sent to", userId);
-        // You might want to update the UI state here
         return { success: true, data };
       } else {
         console.error("Failed to send friend request:", response.status);
@@ -57,7 +62,6 @@ export default function ChatWindow({ user, members = [] }) {
       
       if (response.ok) {
         console.log("Friend request cancelled");
-        // You might want to update the UI state here
         return { success: true };
       } else {
         console.error("Failed to cancel friend request:", response.status);
@@ -70,42 +74,48 @@ export default function ChatWindow({ user, members = [] }) {
   };
 
   const handleAddFriend = async () => {
-    const result = await sendFriendRequest(user.id);
+    const result = await sendFriendRequest(userState.id); // CHANGED: Use userState.id
     if (result.success) {
-      // Update UI or show success message
       const requestId = result.data.id;
       setCurrentRequestId(requestId);
-      // Store in localStorage with user ID as key
-      localStorage.setItem(`pendingRequest_${user.id}`, requestId.toString());
+      localStorage.setItem(`pendingRequest_${userState.id}`, requestId.toString());
       console.log("Friend request sent, ID:", requestId);
-      console.log("set")
+      
+      // NEW: Update the user state to show "Pending"
+      setUserState(prev => ({
+        ...prev,
+        isFriend: "Pending"
+      }));
     } else {
-      // Handle error
       console.error("Failed to send friend request");
     }
   };
 
   const handleCancelRequest = async () => {
-  // Try to get from state first, then from localStorage
-  let requestId = currentRequestId;
-  if (!requestId) {
-    requestId = localStorage.getItem(`pendingRequest_${user.id}`);
-  }
-  
-  if (requestId) {
-    const result = await cancelFriendRequest(requestId);
-    if (result.success) {
-      console.log("Friend request cancelled successfully");
-      setCurrentRequestId(null);
-      // Remove from localStorage
-      localStorage.removeItem(`pendingRequest_${user.id}`);
-    } else {
-      console.error("Failed to cancel friend request");
+    let requestId = currentRequestId;
+    if (!requestId) {
+      requestId = localStorage.getItem(`pendingRequest_${userState.id}`); // CHANGED: Use userState.id
     }
-  } else {
-    console.error("No request ID available for cancellation");
-  }
-};
+    
+    if (requestId) {
+      const result = await cancelFriendRequest(requestId);
+      if (result.success) {
+        console.log("Friend request cancelled successfully");
+        setCurrentRequestId(null);
+        localStorage.removeItem(`pendingRequest_${userState.id}`); // CHANGED: Use userState.id
+        
+        // NEW: Update the user state to show "Add Friend" button again
+        setUserState(prev => ({
+          ...prev,
+          isFriend: "False"
+        }));
+      } else {
+        console.error("Failed to cancel friend request");
+      }
+    } else {
+      console.error("No request ID available for cancellation");
+    }
+  };
   // ==================== END FRIEND REQUEST LOGIC ====================
 
   const scrollToBottom = () => {
@@ -272,14 +282,16 @@ export default function ChatWindow({ user, members = [] }) {
       {/* Header */}
       <div className="p-4 bg-[#333] flex justify-between items-center border-b border-green-500">
         <div className="flex items-center space-x-4">
+          {/* CHANGED: Use userState.avatar */}
           <img
-            src={user.avatar}
-            alt={user.name}
+            src={userState.avatar}
+            alt={userState.name}
             className="w-10 h-10 rounded-full"
             onError={(e) => { e.target.src = "src/img/ai.png"; }}
           />
           <div>
-            <h3 className="text-lg font-semibold">{user.name}</h3>
+            {/* CHANGED: Use userState.name */}
+            <h3 className="text-lg font-semibold">{userState.name}</h3>
             {members.length > 0 && (
               <p className="text-sm text-gray-400">
                 Members: {members.map(m => m.name).join(', ')}
@@ -287,7 +299,8 @@ export default function ChatWindow({ user, members = [] }) {
             )}
           </div>
           {/* Show Add Friend if not friend */}
-          {user.isFriend === "False" && (
+          {/* CHANGED: Use userState.isFriend */}
+          {userState.isFriend === "False" && (
             <button
               onClick={handleAddFriend}
               className="px-3 py-1 bg-[#16A34A] text-white rounded text-sm hover:bg-[#15803d] transition-colors duration-200 ease-in-out"
@@ -295,7 +308,8 @@ export default function ChatWindow({ user, members = [] }) {
               Add Friend
             </button>
           )}
-          {user.isFriend === "Pending" && (
+          {/* CHANGED: Use userState.isFriend */}
+          {userState.isFriend === "Pending" && (
             <button
               onClick={handleCancelRequest}
               className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 transition-colors duration-200 ease-in-out"
