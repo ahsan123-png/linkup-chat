@@ -66,7 +66,7 @@ export default function ChatLayout() {
         }
 
         const data = await response.json();
-
+        console.log('Fetched users:', data);
         // Transform API data
         const transformedUsers = data.map(user => ({
           id: user.id,
@@ -74,6 +74,7 @@ export default function ChatLayout() {
           username: user.username,
           avatar: user.profile_image ? `http://127.0.0.1:8000${user.profile_image}` : null,
           status: user.status || 'Available',
+          isFriend : user.is_friend || "False",
         }));
 
         setAllUsersData(transformedUsers);

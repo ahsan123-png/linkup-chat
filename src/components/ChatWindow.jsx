@@ -6,13 +6,107 @@ export default function ChatWindow({ user, members = [] }) {
   const [socket, setSocket] = useState(null);
   const [file, setFile] = useState(null);
   const chatEndRef = useRef(null);
-
+  const BASE_URL = "http://127.0.0.1:8000"
   const API_BASE = "http://127.0.0.1:8000/users/api/chat";
   const WS_BASE = "ws://127.0.0.1:8000/ws/chat";
   const token = localStorage.getItem("accessToken");
   const currentUsername = user?.username;
   const isAIChat = user?.name === 'Linko';
+  const [currentRequestId, setCurrentRequestId] = useState(null);
   console.log("Current User:", isAIChat);
+
+  // ==================== FRIEND REQUEST LOGIC ====================
+  const sendFriendRequest = async (userId) => {
+    try {
+      const response = await fetch(`${BASE_URL}/users/friend-requests/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to_user: userId
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Friend request sent to", userId);
+        // You might want to update the UI state here
+        return { success: true, data };
+      } else {
+        console.error("Failed to send friend request:", response.status);
+        return { success: false, error: response.status };
+      }
+    } catch (error) {
+      console.error("Failed to send friend request:", error);
+      return { success: false, error };
+    }
+  };
+
+  const cancelFriendRequest = async (requestId) => {
+    console.log("Cancelling friend request with ID:", requestId);
+    try {
+      const response = await fetch(`${BASE_URL}/users/friend-requests/${requestId}/cancel/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        console.log("Friend request cancelled");
+        // You might want to update the UI state here
+        return { success: true };
+      } else {
+        console.error("Failed to cancel friend request:", response.status);
+        return { success: false, error: response.status };
+      }
+    } catch (error) {
+      console.error("Failed to cancel friend request:", error);
+      return { success: false, error };
+    }
+  };
+
+  const handleAddFriend = async () => {
+    const result = await sendFriendRequest(user.id);
+    if (result.success) {
+      // Update UI or show success message
+      const requestId = result.data.id;
+      setCurrentRequestId(requestId);
+      // Store in localStorage with user ID as key
+      localStorage.setItem(`pendingRequest_${user.id}`, requestId.toString());
+      console.log("Friend request sent, ID:", requestId);
+      console.log("set")
+    } else {
+      // Handle error
+      console.error("Failed to send friend request");
+    }
+  };
+
+  const handleCancelRequest = async () => {
+  // Try to get from state first, then from localStorage
+  let requestId = currentRequestId;
+  if (!requestId) {
+    requestId = localStorage.getItem(`pendingRequest_${user.id}`);
+  }
+  
+  if (requestId) {
+    const result = await cancelFriendRequest(requestId);
+    if (result.success) {
+      console.log("Friend request cancelled successfully");
+      setCurrentRequestId(null);
+      // Remove from localStorage
+      localStorage.removeItem(`pendingRequest_${user.id}`);
+    } else {
+      console.error("Failed to cancel friend request");
+    }
+  } else {
+    console.error("No request ID available for cancellation");
+  }
+};
+  // ==================== END FRIEND REQUEST LOGIC ====================
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -170,7 +264,7 @@ export default function ChatWindow({ user, members = [] }) {
       setFile(selected);
     }
   };
-
+  console.log('User:', user);
   const currentChat = chatMap[currentUsername] || [];
 
   return (
@@ -192,6 +286,23 @@ export default function ChatWindow({ user, members = [] }) {
               </p>
             )}
           </div>
+          {/* Show Add Friend if not friend */}
+          {user.isFriend === "False" && (
+            <button
+              onClick={handleAddFriend}
+              className="px-3 py-1 bg-[#16A34A] text-white rounded text-sm hover:bg-[#15803d] transition-colors duration-200 ease-in-out"
+            >
+              Add Friend
+            </button>
+          )}
+          {user.isFriend === "Pending" && (
+            <button
+              onClick={handleCancelRequest}
+              className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 transition-colors duration-200 ease-in-out"
+            >
+              Pending...
+            </button>
+          )}
         </div>
 
         {/* Right: Call Icons */}
